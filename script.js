@@ -54,8 +54,8 @@ document.addEventListener('click', (e) => {
     }
 
     // Fechar dropdown de ações se clicar fora
-    if (!e.target.matches('.btn-dropdown')) {
-        document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+    if (!e.target.closest('.dropdown') && !e.target.closest('.dropdown-menu')) {
+        closeAllDropdowns();
     }
 });
 
@@ -269,15 +269,30 @@ function saveConfigAndClose() {
 }
 
 // --- DROPDOWNS E EVENTOS ---
+function closeAllDropdowns() {
+    document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+    const backdrop = document.getElementById('dropdown-backdrop');
+    if (backdrop) backdrop.classList.remove('show');
+}
+
 function toggleDropdown(btn) {
     const menu = btn.nextElementSibling;
     const isShowing = menu.classList.contains('show');
-    document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+    closeAllDropdowns();
     if (!isShowing) {
         const tr = btn.closest('.main-row');
         const hasSublist = tr.nextElementSibling && tr.nextElementSibling.classList.contains('sublist-row');
         menu.innerHTML = getDropdownHTML(hasSublist);
         menu.classList.add('show');
+
+        let backdrop = document.getElementById('dropdown-backdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'dropdown-backdrop';
+            backdrop.onclick = closeAllDropdowns;
+            document.body.appendChild(backdrop);
+        }
+        backdrop.classList.add('show');
     }
 }
 
@@ -296,6 +311,7 @@ function getDropdownHTML(hasSublist) {
 }
 
 function toggleSublist(btn) {
+    closeAllDropdowns();
     const tr = btn.closest('.main-row');
     const tableId = tr.closest('table').id;
     const type = tableId.includes('coroinhas') ? 'coroinhas' : 'cerimoniarios';
@@ -327,6 +343,7 @@ function removeGeneralDOM(tr, type) {
 }
 
 function applyEvent(btn, eventId) {
+    closeAllDropdowns();
     const tr = btn.closest('.main-row');
     const type = tr.closest('table').id.includes('coroinhas') ? 'coroinhas' : 'cerimoniarios';
     const obsCell = tr.querySelector('.obs-cell');
@@ -407,7 +424,10 @@ function createSublist(mainRow, type, existingData = null) {
 
     let html = `<td colspan="${colsCount}">
         <div class="sublist-container">
-            <div class="sublist-title">Missa - Definição de Funções</div>
+            <div class="sublist-header-flex">
+                <div class="sublist-title">Missa - Definição de Funções</div>
+                <button class="btn-sublist-toggle no-print" onclick="toggleSublistFullscreen(this)">📱 Tela Cheia</button>
+            </div>
             <div class="sublist-roles">`;
 
     const defaultRoles = type === 'coroinhas' ? ['Coroinha 1', 'Coroinha 2'] : ['Cruciferário', 'Cerimonialista'];
@@ -425,6 +445,13 @@ function createSublist(mainRow, type, existingData = null) {
 
     subTr.innerHTML = html;
     mainRow.parentNode.insertBefore(subTr, mainRow.nextSibling);
+}
+
+function toggleSublistFullscreen(btn) {
+    const container = btn.closest('.sublist-container');
+    if (!container) return;
+    const isFullscreen = container.classList.toggle('sublist-fullscreen');
+    btn.innerHTML = isFullscreen ? '✓ Concluir Edição' : '📱 Tela Cheia';
 }
 
 function addDynamicRole(btn) {

@@ -662,6 +662,21 @@ tbody.linha-separadora-semana td {
     border-color: #d32f2f;
 }
 
+#dropdown-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 999990;
+}
+#dropdown-backdrop.show {
+    display: block;
+}
+
 .dropdown-menu {
     display: none;
     position: absolute;
@@ -741,12 +756,88 @@ hr {
     gap: 4px;
 }
 
+.sublist-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
 .sublist-title {
     font-weight: bold;
     color: var(--color-wine);
     font-size: 0.78rem;
     text-transform: uppercase;
-    margin-bottom: 2px;
+}
+
+.btn-sublist-toggle {
+    background: #f1f3f5;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-wine);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-sublist-toggle:hover {
+    background: var(--color-wine);
+    color: white;
+}
+
+/* Fullscreen Sublist Modal Mode */
+.sublist-container.sublist-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    z-index: 999999 !important;
+    background: #ffffff !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+    border-left: none !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.sublist-container.sublist-fullscreen .sublist-header-flex {
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--color-wine);
+    margin-bottom: 15px;
+}
+
+.sublist-container.sublist-fullscreen .sublist-title {
+    font-size: 1.1rem;
+}
+
+.sublist-container.sublist-fullscreen .btn-sublist-toggle {
+    background: #22c55e !important;
+    color: #ffffff !important;
+    padding: 8px 16px !important;
+    font-size: 0.95rem !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4) !important;
+}
+
+.sublist-container.sublist-fullscreen .role-item {
+    padding: 12px !important;
+    margin-bottom: 10px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06) !important;
+}
+
+.sublist-container.sublist-fullscreen .role-select,
+.sublist-container.sublist-fullscreen .role-val {
+    min-height: 48px !important;
+    font-size: 1rem !important;
 }
 
 .sublist-roles {
@@ -1113,17 +1204,15 @@ hr {
         color: white;
     }
 
-    /* Sub-list sticky e responsiva no mobile */
+    /* Sub-list responsiva no mobile (Sem position: sticky para evitar bugs de toque no navegador) */
     .sublist-row td {
         position: relative;
     }
     .sublist-container {
-        position: sticky;
+        position: relative;
         left: 0;
-        max-width: calc(100vw - 30px);
         width: 100%;
         box-sizing: border-box;
-        z-index: 5;
     }
     .sublist-roles .role-item {
         flex-wrap: wrap;
@@ -1151,6 +1240,53 @@ hr {
         padding: 10px 0;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         border-top: 1px solid #ddd;
+    }
+
+    /* Mobile Bottom Sheet para o menu dos 3 pontinhos (⋮) */
+    .dropdown-menu.show {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        width: 100vw !important;
+        min-width: 100vw !important;
+        max-height: 80vh !important;
+        overflow-y: auto !important;
+        border-radius: 20px 20px 0 0 !important;
+        box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3) !important;
+        padding: 15px 15px 35px 15px !important;
+        box-sizing: border-box !important;
+        z-index: 999995 !important;
+        animation: slideUpMenu 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        border: none !important;
+        border-top: 3px solid var(--color-wine) !important;
+        background-color: #ffffff !important;
+    }
+    
+    @keyframes slideUpMenu {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+    
+    .dropdown-header {
+        font-size: 0.85rem !important;
+        color: #666 !important;
+        padding: 10px 15px 5px 15px !important;
+    }
+    
+    .dropdown-item {
+        padding: 14px 16px !important;
+        font-size: 1rem !important;
+        border-bottom: 1px solid #f1f3f5 !important;
+        border-radius: 8px !important;
+        margin-bottom: 2px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .dropdown-item:active {
+        background-color: #e9ecef !important;
     }
     
     .modal-content {
