@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Escalas Litúrgicas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="app-header no-print">
+            <div class="header-left">
+                <div class="header-title">
+                    <h1>Paróquia Nossa Senhora das Graças</h1>
+                    <h2>Escala Litúrgica</h2>
+                </div>
+                <div class="month-year-inputs">
+                    <label>Mês/Ano:
+                        <select id="mes" onchange="saveData()" class="custom-select">
+                            <option value="Janeiro">Janeiro</option>
+                            <option value="Fevereiro">Fevereiro</option>
+                            <option value="Março">Março</option>
+                            <option value="Abril">Abril</option>
+                            <option value="Maio">Maio</option>
+                            <option value="Junho">Junho</option>
+                            <option value="Julho">Julho</option>
+                            <option value="Agosto">Agosto</option>
+                            <option value="Setembro">Setembro</option>
+                            <option value="Outubro">Outubro</option>
+                            <option value="Novembro">Novembro</option>
+                            <option value="Dezembro">Dezembro</option>
+                        </select>
+                        <select id="ano" onchange="saveData()" class="custom-select">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026" selected>2026</option>
+                            <option value="2027">2027</option>
+                            <option value="2028">2028</option>
+                            <option value="2029">2029</option>
+                            <option value="2030">2030</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+        </header>
+
+        <div class="tabs-container no-print">
+            <div class="tabs">
+                <button class="tab-btn" onclick="openTab(event, 'tab-coroinhas')">Escala de Coroinhas</button>
+                <button class="tab-btn" onclick="openTab(event, 'tab-cerimoniarios')">Escala de Cerimoniários</button>
+            </div>
+            <div class="color-picker-container"
+                title="Clique em uma célula da tabela para selecioná-la, depois escolha a cor aqui">
+                <label>Cor da Célula Selecionada:</label>
+                <input type="color" id="cell-color-picker" value="#ffffff">
+                <button class="btn btn-small" onclick="clearCellColor()">Limpar Cor</button>
+            </div>
+        </div>
+
+        <main class="printable-area" id="printable-area">
+            <div class="print-header">
+                <h1 id="print-title">Paróquia Nossa Senhora das Graças</h1>
+                <h2 id="print-mes-ano"></h2>
+            </div>
+
+            <!-- Tab Coroinhas -->
+            <div id="tab-coroinhas" class="tab-content">
+                <h3 class="section-title">Coroinhas</h3>
+                <div class="table-responsive">
+                    <table class="escala-table" id="table-coroinhas">
+                        <thead>
+                            <tr>
+                                <th style="width: 7%">Data</th>
+                                <th style="width: 15%">Dia da Semana</th>
+                                <th style="width: 7%">Horário</th>
+                                <th class="col-local" style="width: 20%">Local</th>
+                                <th style="width: 15%">Coroinha 1</th>
+                                <th style="width: 15%">Coroinha 2</th>
+                                <th style="width: 15%">Observações</th>
+                                <th style="width: 6%" class="no-print">Ações</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <button class="btn btn-add no-print" onclick="addRow('table-coroinhas')">+ Adicionar Missa</button>
+            </div>
+
+            <!-- Tab Cerimoniários -->
+            <div id="tab-cerimoniarios" class="tab-content">
+                <h3 class="section-title">Cerimoniários</h3>
+                <div class="table-responsive">
+                    <table class="escala-table" id="table-cerimoniarios">
+                        <thead>
+                            <tr>
+                                <th style="width: 7%">Data</th>
+                                <th style="width: 15%">Dia da Semana</th>
+                                <th style="width: 7%">Horário</th>
+                                <th class="col-local" style="width: 20%">Local</th>
+                                <th style="width: 15%">Cruciferário</th>
+                                <th style="width: 15%">Cerimonialista</th>
+                                <th style="width: 15%">Observações</th>
+                                <th style="width: 6%" class="no-print">Ações</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <button class="btn btn-add no-print" onclick="addRow('table-cerimoniarios')">+ Adicionar Missa</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL DE CONFIGURAÇÕES -->
+    <div id="config-modal" class="modal no-print">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configurações</h2>
+                <span class="close-modal" onclick="closeConfigModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="config-tabs no-print">
+                    <button class="config-tab-btn active"
+                        onclick="openConfigTab(event, 'config-eventos')">Eventos</button>
+                    <button class="config-tab-btn" onclick="openConfigTab(event, 'config-locais')">Locais</button>
+                    <button class="config-tab-btn" onclick="openConfigTab(event, 'config-nomes')">Nomes</button>
+                    <button class="config-tab-btn" onclick="openConfigTab(event, 'config-funcoes')">Funções
+                        Extras</button>
+                    <button class="config-tab-btn" onclick="openConfigTab(event, 'config-backup')">Backup</button>
+                </div>
+
+                <div id="config-eventos" class="config-tab-content" style="display:block;">
+                    <h3 style="color:var(--color-wine); margin-bottom:10px; font-size:1.2rem;">Eventos Especiais</h3>
+                    <p class="modal-desc">Defina cores das linhas. Marque "Convocar Todos" para gerar a sub-lista e
+                        aplicar a mesclagem automaticamente.</p>
+                    <div id="events-list"></div>
+                    <button class="btn btn-add" style="margin-top: 10px;" onclick="addNewEventConfig()">+ Novo
+                        Evento</button>
+                </div>
+
+                <div id="config-locais" class="config-tab-content" style="display:none;">
+                    <h3 style="color:var(--color-wine); margin-bottom:10px; font-size:1.2rem;">Locais das Missas</h3>
+                    <p class="modal-desc">O primeiro local da lista será considerado o <strong>Local Padrão</strong>.
+                    </p>
+                    <div id="locais-list"></div>
+                    <button class="btn btn-add" style="margin-top: 10px;" onclick="addNewLocalConfig()">+ Novo
+                        Local</button>
+                </div>
+
+                <div id="config-nomes" class="config-tab-content" style="display:none;">
+                    <h3 style="color:var(--color-wine); margin-bottom:10px; font-size:1.2rem;">Gerenciar Servidores</h3>
+                    <p class="modal-desc">Nomes aparecerão na pesquisa rápida (dropdown) ao digitar nas tabelas.</p>
+                    <div class="servers-management">
+                        <div class="server-col">
+                            <h4>Coroinhas</h4>
+                            <div id="coroinhas-config-list"></div>
+                            <button class="btn btn-add" style="margin-top:5px;" onclick="addNewServer('coroinhas')">+
+                                Novo Coroinha</button>
+                        </div>
+                        <div class="server-col">
+                            <h4>Cerimoniários</h4>
+                            <div id="cerimoniarios-config-list"></div>
+                            <button class="btn btn-add" style="margin-top:5px;"
+                                onclick="addNewServer('cerimoniarios')">+ Novo Cerimoniário</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="config-funcoes" class="config-tab-content" style="display:none;">
+                    <h3 style="color:var(--color-wine); margin-bottom:10px; font-size:1.2rem;">Gerenciar Funções Extras
+                    </h3>
+                    <p class="modal-desc">Cadastre as funções que aparecerão nos Dropdowns dentro das sub-listas.</p>
+                    <div id="roles-list"></div>
+                    <button class="btn btn-add" style="margin-top: 10px;" onclick="addNewRoleConfig()">+ Nova
+                        Função</button>
+                </div>
+
+                <div id="config-backup" class="config-tab-content" style="display:none;">
+                    <h3 style="color:var(--color-wine); margin-bottom:10px; font-size:1.2rem;">Backup e Restauração</h3>
+                    <p class="modal-desc">Salve todos os dados cadastrados ou importe de um arquivo anterior.</p>
+                    <div style="display: flex; gap: 15px; margin-top: 20px;">
+                        <button class="btn" style="background:#e0f2f1; color:#00695c; font-weight:bold;"
+                            onclick="exportData()">⬇️ Salvar Backup</button>
+                        <button class="btn" style="background:#f3e5f5; color:#6a1b9a; font-weight:bold;"
+                            onclick="document.getElementById('import-file').click()">⬆️ Importar Backup</button>
+                        <input type="file" id="import-file" accept=".json" style="display:none"
+                            onchange="importData(event)">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="text-align: right;">
+                <button class="btn" style="background:var(--color-wine); color:white;"
+                    onclick="saveConfigAndClose()">Salvar e Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Row Coroinhas -->
+    <template id="row-coroinhas-template">
+        <tr class="main-row">
+            <td class="colorable data-cell"><input type="date" class="date-input"
+                    onchange="calculateDayOfWeek(this); saveData();"></td>
+            <td class="colorable day-cell" data-placeholder="Segunda-feira"></td>
+            <td class="colorable time-cell"><input type="time" class="time-input" onchange="saveData()"></td>
+            <td class="colorable local-cell col-local">
+                <select class="local-select" onchange="handleLocalChange(this); saveData();">
+                </select>
+            </td>
+            <td class="colorable name-cell" style="position:relative;"><input type="text" class="name-input"
+                    placeholder="Nome" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)">
+            </td>
+            <td class="colorable name-cell" style="position:relative;"><input type="text" class="name-input"
+                    placeholder="Nome" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)">
+            </td>
+            <td contenteditable="true" class="colorable obs-cell" onblur="saveData()"></td>
+            <td class="no-print actions-cell">
+                <div style="display:flex; justify-content:center; gap:5px; align-items:center;">
+                    <div class="dropdown">
+                        <button class="btn-dropdown" onclick="toggleDropdown(this)" title="Ações">⋮</button>
+                        <div class="dropdown-menu"></div>
+                    </div>
+                    <button class="btn-remove-row" onclick="removeRow(this)" title="Remover Missa">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                            </path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    </template>
+
+    <!-- Template Row Cerimoniários -->
+    <template id="row-cerimoniarios-template">
+        <tr class="main-row">
+            <td class="colorable data-cell"><input type="date" class="date-input"
+                    onchange="calculateDayOfWeek(this); saveData();"></td>
+            <td class="colorable day-cell" data-placeholder="Segunda-feira"></td>
+            <td class="colorable time-cell"><input type="time" class="time-input" onchange="saveData()"></td>
+            <td class="colorable local-cell col-local">
+                <select class="local-select" onchange="handleLocalChange(this); saveData();">
+                </select>
+            </td>
+            <td class="colorable name-cell" style="position:relative;"><input type="text" class="name-input"
+                    placeholder="Nome" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)">
+            </td>
+            <td class="colorable name-cell" style="position:relative;"><input type="text" class="name-input"
+                    placeholder="Nome" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)">
+            </td>
+            <td contenteditable="true" class="colorable obs-cell" onblur="saveData()"></td>
+            <td class="no-print actions-cell">
+                <div style="display:flex; justify-content:center; gap:5px; align-items:center;">
+                    <div class="dropdown">
+                        <button class="btn-dropdown" onclick="toggleDropdown(this)" title="Ações">⋮</button>
+                        <div class="dropdown-menu"></div>
+                    </div>
+                    <button class="btn-remove-row" onclick="removeRow(this)" title="Remover Missa">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                            </path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    </template>
+
+    <!-- Botões Flutuantes (FAB Stack) -->
+    <div class="fab-container no-print">
+        <button class="fab fab-whatsapp" onclick="exportWhatsApp()" title="Exportar WhatsApp">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+        </button>
+        <button class="fab fab-pdf" onclick="exportPDF()" title="Salvar como PDF">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        </button>
+        <button id="fab-config" class="fab fab-config" onclick="openConfigModal()" title="Configurações">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
