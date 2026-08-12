@@ -1112,6 +1112,31 @@ hr {
         background-color: var(--color-wine);
         color: white;
     }
+
+    /* Sub-list sticky e responsiva no mobile */
+    .sublist-row td {
+        position: relative;
+    }
+    .sublist-container {
+        position: sticky;
+        left: 0;
+        max-width: calc(100vw - 30px);
+        width: 100%;
+        box-sizing: border-box;
+        z-index: 5;
+    }
+    .sublist-roles .role-item {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .sublist-roles .role-select {
+        flex: 1 1 120px;
+        min-height: 44px;
+    }
+    .sublist-roles .role-val {
+        flex: 2 1 140px;
+        min-height: 44px;
+    }
     
     /* Make FAB buttons horizontal on bottom for mobile */
     .fab-container {
