@@ -1,3 +1,8 @@
+// ====== SUPABASE SETUP ======
+const SUPABASE_URL = 'https://xpgsrqszqwpolqlggobs.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_BxpxwgM2b4HAxx9E1qHNAQ_5-pAH3Gy';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 let currentFocusedCell = null;
 
 // Configs
@@ -14,13 +19,71 @@ let coroinhasConfig = JSON.parse(localStorage.getItem('coroinhasConfigV2')) || [
 let cerimoniariosConfig = JSON.parse(localStorage.getItem('cerimoniariosConfigV2')) || ['Marcos', 'Tiago', 'Felipe', 'Ana'];
 let locaisConfig = JSON.parse(localStorage.getItem('locaisConfigV2')) || ['Igreja Matriz', 'Capela São José'];
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadData();
+// ====== ROTEAMENTO E INICIALIZAÇÃO ======
+document.addEventListener('DOMContentLoaded', async () => {
+    const isLoginPage = window.location.pathname.includes('login.html');
+    
+    try {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error) throw error;
 
-    const activeTab = localStorage.getItem('activeTabV2') || 'tab-coroinhas';
-    const tabBtn = document.querySelector(`.tab-btn[onclick*="${activeTab}"]`);
-    if (tabBtn) tabBtn.click();
+        if (isLoginPage) {
+            if (session) {
+                window.location.href = 'index.html';
+                return;
+            }
+            setupLoginForm();
+        } else {
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            await loadDataFromSupabase();
+
+            const activeTab = localStorage.getItem('activeTabV2') || 'tab-coroinhas';
+            const tabBtn = document.querySelector(`.tab-btn[onclick*="${activeTab}"]`);
+            if (tabBtn) tabBtn.click();
+        }
+    } catch (err) {
+        console.error("Erro na verificação de sessão:", err);
+        if (!isLoginPage) window.location.href = 'login.html';
+    }
 });
+
+// ====== AUTENTICAÇÃO ======
+function setupLoginForm() {
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                window.location.href = 'index.html';
+            } catch (err) {
+                const errDiv = document.getElementById('login-error');
+                if (errDiv) {
+                    errDiv.style.display = 'block';
+                    errDiv.innerText = "Usuário ou senha incorretos";
+                } else {
+                    alert("Usuário ou senha incorretos");
+                }
+            }
+        });
+    }
+}
+
+async function logout() {
+    try {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'login.html';
+    } catch (err) {
+        alert("Erro ao sair do sistema.");
+    }
+}
 
 function hexToRgba(hex, alpha) {
     if (!hex) return '';
@@ -283,7 +346,31 @@ function toggleDropdown(btn) {
         const tr = btn.closest('.main-row');
         const hasSublist = tr.nextElementSibling && tr.nextElementSibling.classList.contains('sublist-row');
         menu.innerHTML = getDropdownHTML(hasSublist);
+        
+        // Reset styles for recalculation
+        menu.style.top = '';
+        menu.style.bottom = '';
+        menu.style.marginTop = '';
+        menu.style.marginBottom = '';
+        menu.style.transformOrigin = '';
+        
         menu.classList.add('show');
+
+        // Logic for smart positioning on PC
+        if (window.innerWidth > 768) {
+            const btnRect = btn.getBoundingClientRect();
+            const menuRect = menu.getBoundingClientRect();
+            const spaceAbove = btnRect.top;
+            const spaceBelow = window.innerHeight - btnRect.bottom;
+
+            if (spaceAbove < menuRect.height && spaceBelow > spaceAbove) {
+                menu.style.top = '100%';
+                menu.style.bottom = 'auto';
+                menu.style.marginTop = '5px';
+                menu.style.marginBottom = '0';
+                menu.style.transformOrigin = 'top right';
+            }
+        }
 
         let backdrop = document.getElementById('dropdown-backdrop');
         if (!backdrop) {
@@ -528,40 +615,56 @@ function addRow(tableId, data = null) {
     saveData();
 }
 
-function removeRow(btn) {
+async function removeRow(btn) {
     if (confirm('Tem certeza que deseja remover esta missa?')) {
         const row = btn.closest('.main-row');
-        const tbodyBloco = row.closest('.bloco-missa');
-        if (tbodyBloco) {
-            tbodyBloco.remove();
-        } else {
-            if (row.nextElementSibling && row.nextElementSibling.classList.contains('sublist-row')) row.nextElementSibling.remove();
-            row.remove();
+        const rowId = row.id;
+
+        try {
+            // Deleta do Supabase
+            const { error } = await supabaseClient.from('escalas').delete().eq('id', rowId);
+            if (error) throw error;
+
+            // Remove do DOM
+            const tbodyBloco = row.closest('.bloco-missa');
+            if (tbodyBloco) {
+                tbodyBloco.remove();
+            } else {
+                if (row.nextElementSibling && row.nextElementSibling.classList.contains('sublist-row')) row.nextElementSibling.remove();
+                row.remove();
+            }
+            
+            ordenarTodasTabelas();
+            saveData();
+        } catch (err) {
+            console.error("Erro ao excluir", err);
+            alert("Ocorreu um erro ao excluir a missa no sistema.");
         }
-        saveData();
-        ordenarTodasTabelas();
     }
 }
 
-// --- DADOS E LOCALSTORAGE ---
+// --- DADOS E SUPABASE CRUD ---
+
+let saveTimeout = null;
+
 function saveData() {
-    const mes = document.getElementById('mes').value;
-    const ano = document.getElementById('ano').value;
+    const mes = document.getElementById('mes') ? document.getElementById('mes').value : '';
+    const ano = document.getElementById('ano') ? document.getElementById('ano').value : '';
     const mesAno = `${mes} ${ano}`;
-    const data = {
-        mes: mes,
-        ano: ano,
-        mesAno: mesAno,
-        coroinhas: getTableData('table-coroinhas'),
-        cerimoniarios: getTableData('table-cerimoniarios')
-    };
-    localStorage.setItem('escalaLiturgicaDataV2', JSON.stringify(data));
-    document.getElementById('print-mes-ano').innerText = mesAno;
+    const printEl = document.getElementById('print-mes-ano');
+    if (printEl) printEl.innerText = mesAno;
     applyWeekSeparator();
+
+    // Debounce: Salva 2 segundos após parar de interagir
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+        await syncToSupabase();
+    }, 2000);
 }
 
 function getTableData(tableId) {
     const table = document.getElementById(tableId);
+    if (!table) return [];
     const rows = table.querySelectorAll('.main-row');
     const tableData = [];
 
@@ -615,35 +718,97 @@ function getTableData(tableId) {
     return tableData;
 }
 
-function loadData() {
-    const savedData = localStorage.getItem('escalaLiturgicaDataV2');
-    if (savedData) {
-        const data = JSON.parse(savedData);
-        if (data.mes) document.getElementById('mes').value = data.mes;
-        if (data.ano) document.getElementById('ano').value = data.ano;
-        else if (data.mesAno) {
-            const parts = data.mesAno.split(' ');
-            if (parts.length > 1) {
-                document.getElementById('mes').value = parts[0];
-                document.getElementById('ano').value = parts[1];
-            }
+async function syncToSupabase() {
+    const mes = document.getElementById('mes') ? document.getElementById('mes').value : '';
+    const ano = document.getElementById('ano') ? document.getElementById('ano').value : '';
+    const mesAno = `${mes} ${ano}`;
+    
+    const coroinhas = getTableData('table-coroinhas').map(r => ({
+        id: r.id,
+        tipo: 'coroinhas',
+        data: r.dateVal || null,
+        mesAno: mesAno,
+        json_data: r
+    }));
+    
+    const cerimoniarios = getTableData('table-cerimoniarios').map(r => ({
+        id: r.id,
+        tipo: 'cerimoniarios',
+        data: r.dateVal || null,
+        mesAno: mesAno,
+        json_data: r
+    }));
+    
+    const allRows = [...coroinhas, ...cerimoniarios];
+    
+    if (allRows.length > 0) {
+        try {
+            const { error } = await supabaseClient.from('escalas').upsert(allRows);
+            if (error) throw error;
+        } catch (err) {
+            console.error("Erro no Upsert:", err);
+            // Evitar alert para não interromper a UX, o console avisa
         }
-        document.getElementById('print-mes-ano').innerText = data.mesAno || `${document.getElementById('mes').value} ${document.getElementById('ano').value}`;
+    }
+}
+
+async function loadDataFromSupabase() {
+    try {
+        const { data: escalas, error } = await supabaseClient.from('escalas').select('*').order('data', { ascending: true });
+        if (error) throw error;
 
         document.querySelectorAll('#table-coroinhas tbody.bloco-missa').forEach(tb => tb.remove());
         document.querySelectorAll('#table-cerimoniarios tbody.bloco-missa').forEach(tb => tb.remove());
         document.querySelectorAll('.linha-separadora-semana').forEach(row => row.remove());
 
-        if (data.coroinhas && data.coroinhas.length > 0) data.coroinhas.forEach(r => addRow('table-coroinhas', r));
-        else addRow('table-coroinhas');
+        let countCoroinhas = 0;
+        let countCerimoniarios = 0;
+        let latestMesAno = null;
 
-        if (data.cerimoniarios && data.cerimoniarios.length > 0) data.cerimoniarios.forEach(r => addRow('table-cerimoniarios', r));
-        else addRow('table-cerimoniarios');
-    } else {
+        if (escalas && escalas.length > 0) {
+            escalas.forEach(row => {
+                const rowData = row.json_data || {};
+                rowData.id = row.id; 
+                if (row.data) rowData.dateVal = row.data;
+                if (row.mesAno && !latestMesAno) latestMesAno = row.mesAno;
+
+                if (row.tipo === 'coroinhas') {
+                    addRow('table-coroinhas', rowData);
+                    countCoroinhas++;
+                } else if (row.tipo === 'cerimoniarios') {
+                    addRow('table-cerimoniarios', rowData);
+                    countCerimoniarios++;
+                }
+            });
+        }
+        
+        if (latestMesAno) {
+            const parts = latestMesAno.split(' ');
+            if (parts.length > 1) {
+                const mesEl = document.getElementById('mes');
+                const anoEl = document.getElementById('ano');
+                if (mesEl) mesEl.value = parts[0];
+                if (anoEl) anoEl.value = parts[1];
+                const printEl = document.getElementById('print-mes-ano');
+                if (printEl) printEl.innerText = latestMesAno;
+            }
+        } else {
+            const mesEl = document.getElementById('mes');
+            const anoEl = document.getElementById('ano');
+            const printEl = document.getElementById('print-mes-ano');
+            if (mesEl && anoEl && printEl) printEl.innerText = `${mesEl.value} ${anoEl.value}`;
+        }
+
+        if (countCoroinhas === 0) for (let i = 0; i < 3; i++) addRow('table-coroinhas');
+        if (countCerimoniarios === 0) for (let i = 0; i < 3; i++) addRow('table-cerimoniarios');
+
+        highlightNextMass();
+        ordenarTodasTabelas();
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao carregar dados do Supabase. A tabela estará vazia.");
         for (let i = 0; i < 3; i++) { addRow('table-coroinhas'); addRow('table-cerimoniarios'); }
     }
-    highlightNextMass();
-    ordenarTodasTabelas();
 }
 
 // --- ORDENAÇÃO E AGRUPAMENTO ---
