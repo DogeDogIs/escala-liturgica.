@@ -837,7 +837,8 @@ async function syncToSupabase() {
         isDirty = true;
         if (saveBtn) {
             saveBtn.classList.add('is-dirty');
-            alert("Falha no autosave. Verifique a conexão com a internet.");
+            const errorMsg = err.message || err.details || JSON.stringify(err);
+            alert("Falha no autosave. Detalhe do banco: " + errorMsg);
         }
     }
     
