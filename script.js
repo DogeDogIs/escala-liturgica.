@@ -162,10 +162,13 @@ function handleNameInput(input) {
     const container = input.closest('.name-cell') || input.closest('.role-item');
     const table = input.closest('table');
     const isCoroinhas = table.id.includes('coroinhas');
+    
+    const validNomes = Array.isArray(sysConfig.nomes) ? sysConfig.nomes : [];
     const configList = isCoroinhas 
-        ? sysConfig.nomes.filter(n => n.is_coroinha).map(n => n.nome) 
-        : sysConfig.nomes.filter(n => n.is_cerimoniario).map(n => n.nome);
+        ? validNomes.filter(n => n && n.is_coroinha && typeof n.nome === 'string').map(n => n.nome) 
+        : validNomes.filter(n => n && n.is_cerimoniario && typeof n.nome === 'string').map(n => n.nome);
 
+    document.querySelectorAll('.name-cell, .role-item').forEach(el => el.style.zIndex = '');
     document.querySelectorAll('.autocomplete-list.show').forEach(ul => {
         if (ul.parentElement !== container) ul.classList.remove('show');
     });
@@ -187,6 +190,7 @@ function handleNameInput(input) {
             return `<li onmousedown="selectAutocomplete('${safeName}', this)">${name}</li>`;
         }).join('');
         ul.classList.add('show');
+        container.style.zIndex = '99999';
 
         const rect = ul.getBoundingClientRect();
         if (rect.bottom > window.innerHeight) {
@@ -344,6 +348,7 @@ function closeAllDropdowns() {
     document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
     const backdrop = document.getElementById('dropdown-backdrop');
     if (backdrop) backdrop.classList.remove('show');
+    document.querySelectorAll('.main-row').forEach(tr => { tr.style.zIndex = ''; tr.style.position = ''; });
 }
 
 function toggleDropdown(btn) {
@@ -352,6 +357,10 @@ function toggleDropdown(btn) {
     closeAllDropdowns();
     if (!isShowing) {
         const tr = btn.closest('.main-row');
+        if (tr) {
+            tr.style.zIndex = '99999';
+            tr.style.position = 'relative';
+        }
         const hasSublist = tr.nextElementSibling && tr.nextElementSibling.classList.contains('sublist-row');
         menu.innerHTML = getDropdownHTML(hasSublist);
         
@@ -367,16 +376,23 @@ function toggleDropdown(btn) {
         // Logic for smart positioning on PC
         if (window.innerWidth > 768) {
             const btnRect = btn.getBoundingClientRect();
-            const menuRect = menu.getBoundingClientRect();
             const spaceAbove = btnRect.top;
             const spaceBelow = window.innerHeight - btnRect.bottom;
 
-            if (spaceAbove < menuRect.height && spaceBelow > spaceAbove) {
+            if (spaceBelow > spaceAbove) {
+                // Abre para baixo
                 menu.style.top = '100%';
                 menu.style.bottom = 'auto';
                 menu.style.marginTop = '5px';
                 menu.style.marginBottom = '0';
                 menu.style.transformOrigin = 'top right';
+            } else {
+                // Abre para cima
+                menu.style.top = 'auto';
+                menu.style.bottom = '100%';
+                menu.style.marginTop = '0';
+                menu.style.marginBottom = '5px';
+                menu.style.transformOrigin = 'bottom right';
             }
         }
 
@@ -709,7 +725,7 @@ function getTableData(tableId) {
         const localSelect = row.querySelector('.local-select');
         const obsCell = row.querySelector('.obs-cell');
 
-        const nameInputs = row.querySelectorAll('.main-row > .name-cell .name-input');
+        const nameInputs = row.querySelectorAll('.name-cell .name-input');
         const namesData = Array.from(nameInputs).map(inp => ({ val: inp.value, color: inp.parentElement.style.backgroundColor }));
 
         const rowData = {
@@ -795,10 +811,10 @@ async function loadDataFromSupabase() {
         // Busca Configurações
         const { data: configData, error: configError } = await supabaseClient.from('configuracoes').select('*').eq('id', 1).single();
         if (!configError && configData) {
-            if (configData.eventos) sysConfig.eventos = configData.eventos;
-            if (configData.locais) sysConfig.locais = configData.locais;
-            if (configData.nomes) sysConfig.nomes = configData.nomes;
-            if (configData.funcoes_extras) sysConfig.funcoes_extras = configData.funcoes_extras;
+            if (Array.isArray(configData.eventos)) sysConfig.eventos = configData.eventos;
+            if (Array.isArray(configData.locais)) sysConfig.locais = configData.locais;
+            if (Array.isArray(configData.nomes)) sysConfig.nomes = configData.nomes;
+            if (Array.isArray(configData.funcoes_extras)) sysConfig.funcoes_extras = configData.funcoes_extras;
         } else if (configError && configError.code === 'PGRST116') {
             await supabaseClient.from('configuracoes').insert([{ id: 1, ...sysConfig }]);
         }
