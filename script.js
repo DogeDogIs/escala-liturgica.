@@ -781,31 +781,46 @@ async function syncToSupabase() {
     const ano = document.getElementById('ano') ? document.getElementById('ano').value : '';
     const mesAno = `${mes} ${ano}`;
     
-    const coroinhas = getTableData('table-coroinhas').map(r => ({
-        id: r.id,
-        tipo: 'coroinhas',
-        data: r.dateVal || null,
-        mesAno: mesAno,
-        json_data: r
-    }));
-    
-    const cerimoniarios = getTableData('table-cerimoniarios').map(r => ({
-        id: r.id,
-        tipo: 'cerimoniarios',
-        data: r.dateVal || null,
-        mesAno: mesAno,
-        json_data: r
-    }));
+    const mapRowForSupabase = (r, tipo) => {
+        const obj = {
+            tipo: tipo,
+            data: r.dateVal || null,
+            mesAno: mesAno,
+            json_data: r
+        };
+        // Se o ID não for um ID temporário do navegador (row_...), enviamos ele para fazer UPDATE
+        if (r.id && !r.id.toString().startsWith('row_')) {
+            obj.id = parseInt(r.id);
+        }
+        return obj;
+    };
+
+    const coroinhas = getTableData('table-coroinhas').map(r => mapRowForSupabase(r, 'coroinhas'));
+    const cerimoniarios = getTableData('table-cerimoniarios').map(r => mapRowForSupabase(r, 'cerimoniarios'));
     
     const allRows = [...coroinhas, ...cerimoniarios];
     
     if (allRows.length > 0) {
         try {
-            const { error } = await supabaseClient.from('escalas').upsert(allRows);
+            const { data: upsertedRows, error } = await supabaseClient.from('escalas').upsert(allRows).select();
             if (error) throw error;
+
+            // Se o Supabase gerou IDs reais, nós atualizamos o DOM para que não repita o INSERT na próxima vez
+            if (upsertedRows) {
+                upsertedRows.forEach(dbRow => {
+                    if (dbRow.json_data && dbRow.json_data.id) {
+                        const tempId = dbRow.json_data.id;
+                        if (tempId.startsWith('row_')) {
+                            const domRow = document.getElementById(tempId);
+                            if (domRow) {
+                                domRow.id = dbRow.id; // Atualiza o elemento <tr> com o ID numérico real
+                            }
+                        }
+                    }
+                });
+            }
         } catch (err) {
             console.error("Erro no Upsert:", err);
-            // Reverter estado visual de erro
             isDirty = true;
             if (saveBtn) {
                 saveBtn.classList.add('is-dirty');
@@ -875,15 +890,11 @@ async function loadDataFromSupabase() {
             if (mesEl && anoEl && printEl) printEl.innerText = `${mesEl.value} ${anoEl.value}`;
         }
 
-        if (countCoroinhas === 0) for (let i = 0; i < 3; i++) addRow('table-coroinhas');
-        if (countCerimoniarios === 0) for (let i = 0; i < 3; i++) addRow('table-cerimoniarios');
-
         highlightNextMass();
         ordenarTodasTabelas();
     } catch (err) {
         console.error(err);
         alert("Erro ao carregar dados do Supabase. A tabela estará vazia.");
-        for (let i = 0; i < 3; i++) { addRow('table-coroinhas'); addRow('table-cerimoniarios'); }
     }
 }
 
