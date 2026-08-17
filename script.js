@@ -833,12 +833,11 @@ async function syncToSupabase() {
             });
         }
     } catch (err) {
-            console.error("Erro no Upsert:", err);
-            isDirty = true;
-            if (saveBtn) {
-                saveBtn.classList.add('is-dirty');
-                alert("Falha no autosave. Verifique a conexão com a internet.");
-            }
+        console.error("Erro no Upsert:", err);
+        isDirty = true;
+        if (saveBtn) {
+            saveBtn.classList.add('is-dirty');
+            alert("Falha no autosave. Verifique a conexão com a internet.");
         }
     }
     
