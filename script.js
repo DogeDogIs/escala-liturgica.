@@ -25,7 +25,7 @@ let sysConfig = {
 // ====== ROTEAMENTO E INICIALIZAÇÃO ======
 document.addEventListener('DOMContentLoaded', async () => {
     const isLoginPage = window.location.pathname.includes('login.html');
-    
+
     try {
         const { data: { session }, error } = await supabaseClient.auth.getSession();
         if (error) throw error;
@@ -61,7 +61,7 @@ function setupLoginForm() {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
+
             try {
                 const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
                 if (error) throw error;
@@ -162,10 +162,10 @@ function handleNameInput(input) {
     const container = input.closest('.name-cell') || input.closest('.role-item');
     const table = input.closest('table');
     const isCoroinhas = table.id.includes('coroinhas');
-    
+
     const validNomes = Array.isArray(sysConfig.nomes) ? sysConfig.nomes : [];
-    const configList = isCoroinhas 
-        ? validNomes.filter(n => n && n.is_coroinha && typeof n.nome === 'string').map(n => n.nome) 
+    const configList = isCoroinhas
+        ? validNomes.filter(n => n && n.is_coroinha && typeof n.nome === 'string').map(n => n.nome)
         : validNomes.filter(n => n && n.is_cerimoniario && typeof n.nome === 'string').map(n => n.nome);
 
     document.querySelectorAll('.name-cell, .role-item').forEach(el => el.style.zIndex = '');
@@ -358,19 +358,19 @@ function toggleDropdown(btn) {
     if (!isShowing) {
         const tr = btn.closest('.main-row');
         if (tr) {
-            tr.style.zIndex = '99999';
+            tr.style.zIndex = '999995';
             tr.style.position = 'relative';
         }
         const hasSublist = tr.nextElementSibling && tr.nextElementSibling.classList.contains('sublist-row');
         menu.innerHTML = getDropdownHTML(hasSublist);
-        
+
         // Reset styles for recalculation
         menu.style.top = '';
         menu.style.bottom = '';
         menu.style.marginTop = '';
         menu.style.marginBottom = '';
         menu.style.transformOrigin = '';
-        
+
         menu.classList.add('show');
 
         // Logic for smart positioning on PC
@@ -659,7 +659,7 @@ async function removeRow(btn) {
                 if (row.nextElementSibling && row.nextElementSibling.classList.contains('sublist-row')) row.nextElementSibling.remove();
                 row.remove();
             }
-            
+
             ordenarTodasTabelas();
             saveData();
         } catch (err) {
@@ -770,7 +770,7 @@ function getTableData(tableId) {
 
 async function syncToSupabase() {
     if (!isDirty) return;
-    
+
     const saveBtn = document.getElementById('fab-manual-save');
     if (saveBtn) {
         saveBtn.classList.remove('is-dirty');
@@ -782,14 +782,14 @@ async function syncToSupabase() {
     const mes = document.getElementById('mes') ? document.getElementById('mes').value : '';
     const ano = document.getElementById('ano') ? document.getElementById('ano').value : '';
     const mesAno = `${mes} ${ano}`;
-    
+
     const rowsToInsert = [];
     const rowsToUpdate = [];
     const mergedRows = {};
 
     const processRow = (r, tipo) => {
         let isRealId = r.id && !r.id.toString().startsWith('row_');
-        let idKey = r.id; 
+        let idKey = r.id;
 
         if (!mergedRows[idKey]) {
             mergedRows[idKey] = {
@@ -832,10 +832,10 @@ async function syncToSupabase() {
         if (obj.id) rowsToUpdate.push(obj);
         else rowsToInsert.push(obj);
     }
-    
+
     try {
         let returnedRows = [];
-        
+
         if (rowsToInsert.length > 0) {
             const { data: inserted, error: errInsert } = await supabaseClient.from('escalas').insert(rowsToInsert).select();
             if (errInsert) throw errInsert;
@@ -871,7 +871,7 @@ async function syncToSupabase() {
             alert("Falha no autosave. Detalhe do banco: " + errorMsg);
         }
     }
-    
+
     if (saveBtn) saveBtn.classList.remove('is-saving');
 }
 
@@ -900,7 +900,7 @@ async function loadDataFromSupabase() {
         if (escalas && escalas.length > 0) {
             escalas.forEach(row => {
                 const rowData = row.extras || {};
-                rowData.id = row.id; 
+                rowData.id = row.id;
                 if (row.data) rowData.dateVal = row.data;
                 if (row.horario) rowData.timeVal = row.horario;
                 if (row.local) rowData.localVal = row.local;
@@ -911,14 +911,14 @@ async function loadDataFromSupabase() {
                     const rowDataCor = { ...rowData, names: row.coroinhas };
                     addRow('table-coroinhas', rowDataCor);
                 }
-                
+
                 if (row.cerimoniarios) {
                     const rowDataCer = { ...rowData, names: row.cerimoniarios };
                     addRow('table-cerimoniarios', rowDataCer);
                 }
             });
         }
-        
+
         if (latestMesAno) {
             const parts = latestMesAno.split(' ');
             if (parts.length > 1) {
@@ -948,11 +948,11 @@ async function loadDataFromSupabase() {
 function ordenarTodasTabelas() {
     // 1º: Remover todas as linhas separadoras atuais
     document.querySelectorAll('.linha-separadora-semana').forEach(row => row.remove());
-    
+
     // 2º: Ordenar as tabelas individualmente
     ordenarTabelaPorData('table-coroinhas');
     ordenarTabelaPorData('table-cerimoniarios');
-    
+
     // 3º e 4º: Adicionar separadores e re-calcular dias da semana (via applyWeekSeparator)
     applyWeekSeparator();
 }
@@ -960,24 +960,24 @@ function ordenarTodasTabelas() {
 function ordenarTabelaPorData(tableId) {
     const table = document.getElementById(tableId);
     const blocos = Array.from(table.querySelectorAll('tbody.bloco-missa'));
-    
+
     blocos.sort((a, b) => {
         const dateInputA = a.querySelector('.date-input');
         const dateInputB = b.querySelector('.date-input');
-        
+
         const dateA = dateInputA ? dateInputA.value : '';
         const dateB = dateInputB ? dateInputB.value : '';
-        
+
         // Se ambos estão vazios, mantém a ordem original
         if (!dateA && !dateB) return 0;
         // Se A está vazio, joga pro final
         if (!dateA) return 1;
         // Se B está vazio, joga pro final
         if (!dateB) return -1;
-        
+
         return new Date(dateA) - new Date(dateB);
     });
-    
+
     // Reposiciona os blocos já ordenados na tabela
     blocos.forEach(bloco => table.appendChild(bloco));
 }
@@ -1119,12 +1119,12 @@ function applyWeekSeparator() {
     ['table-coroinhas', 'table-cerimoniarios'].forEach(tableId => {
         const table = document.getElementById(tableId);
         if (!table) return;
-        
+
         table.querySelectorAll('.linha-separadora-semana').forEach(el => el.remove());
 
         const blocos = Array.from(table.querySelectorAll('tbody.bloco-missa'));
         let lastDate = null;
-        
+
         blocos.forEach(bloco => {
             const dateInput = bloco.querySelector('.date-input');
             if (dateInput && dateInput.value) {
