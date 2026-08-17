@@ -681,8 +681,8 @@ function saveData() {
     applyWeekSeparator();
 
     isDirty = true;
-    const saveBtn = document.getElementById('btn-manual-save');
-    if (saveBtn) saveBtn.classList.add('show');
+    const saveBtn = document.getElementById('fab-manual-save');
+    if (saveBtn) saveBtn.classList.add('is-dirty');
 
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(async () => {
@@ -702,7 +702,7 @@ document.addEventListener('focusout', (e) => {
     setTimeout(() => {
         const activeElement = document.activeElement;
         // Se o usuário clicou fora de qualquer campo de entrada
-        if (!activeElement || (!activeElement.matches('input') && !activeElement.matches('select') && !activeElement.matches('button.btn-manual-save'))) {
+        if (!activeElement || (!activeElement.matches('input') && !activeElement.matches('select') && !activeElement.closest('.fab-container'))) {
             if (isDirty) {
                 syncToSupabase();
             }
@@ -768,10 +768,14 @@ function getTableData(tableId) {
 
 async function syncToSupabase() {
     if (!isDirty) return;
-    isDirty = false;
     
-    const saveBtn = document.getElementById('btn-manual-save');
-    if (saveBtn) saveBtn.classList.remove('show');
+    const saveBtn = document.getElementById('fab-manual-save');
+    if (saveBtn) {
+        saveBtn.classList.remove('is-dirty');
+        saveBtn.classList.add('is-saving');
+    }
+
+    isDirty = false;
 
     const mes = document.getElementById('mes') ? document.getElementById('mes').value : '';
     const ano = document.getElementById('ano') ? document.getElementById('ano').value : '';
@@ -801,9 +805,16 @@ async function syncToSupabase() {
             if (error) throw error;
         } catch (err) {
             console.error("Erro no Upsert:", err);
-            // Evitar alert para não interromper a UX, o console avisa
+            // Reverter estado visual de erro
+            isDirty = true;
+            if (saveBtn) {
+                saveBtn.classList.add('is-dirty');
+                alert("Falha no autosave. Verifique a conexão com a internet.");
+            }
         }
     }
+    
+    if (saveBtn) saveBtn.classList.remove('is-saving');
 }
 
 async function loadDataFromSupabase() {
