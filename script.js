@@ -783,25 +783,53 @@ async function syncToSupabase() {
     
     const rowsToInsert = [];
     const rowsToUpdate = [];
+    const mergedRows = {};
 
     const processRow = (r, tipo) => {
-        const obj = {
-            tipo: tipo,
-            data: r.dateVal || null,
-            mesAno: mesAno,
-            json_data: r
-        };
-        
-        if (r.id && !r.id.toString().startsWith('row_')) {
-            obj.id = parseInt(r.id);
-            rowsToUpdate.push(obj);
-        } else {
-            rowsToInsert.push(obj);
+        let isRealId = r.id && !r.id.toString().startsWith('row_');
+        let idKey = r.id; 
+
+        if (!mergedRows[idKey]) {
+            mergedRows[idKey] = {
+                data: r.dateVal || '2000-01-01',
+                horario: r.timeVal || null,
+                local: r.localVal || null,
+                observacao: r.obsHtml || null,
+                extras: {
+                    dateColor: r.dateColor,
+                    dayHtml: r.dayHtml,
+                    dayColor: r.dayColor,
+                    timeColor: r.timeColor,
+                    obsColor: r.obsColor,
+                    eventId: r.eventId,
+                    rowColor: r.rowColor,
+                    wasGeneral: r.wasGeneral,
+                    sublist: r.sublist,
+                    mesAno: mesAno
+                }
+            };
+            if (isRealId) {
+                mergedRows[idKey].id = r.id; // Mantém como string UUID
+            } else {
+                mergedRows[idKey].extras.tempId = idKey; // Salva o temp id para recuperar depois
+            }
         }
+
+        if (tipo === 'coroinhas') mergedRows[idKey].coroinhas = r.names;
+        if (tipo === 'cerimoniarios') mergedRows[idKey].cerimoniarios = r.names;
     };
 
     getTableData('table-coroinhas').forEach(r => processRow(r, 'coroinhas'));
     getTableData('table-cerimoniarios').forEach(r => processRow(r, 'cerimoniarios'));
+
+    for (const key in mergedRows) {
+        const obj = mergedRows[key];
+        if (!obj.coroinhas) obj.coroinhas = null;
+        if (!obj.cerimoniarios) obj.cerimoniarios = null;
+
+        if (obj.id) rowsToUpdate.push(obj);
+        else rowsToInsert.push(obj);
+    }
     
     try {
         let returnedRows = [];
@@ -818,16 +846,16 @@ async function syncToSupabase() {
             if (updated) returnedRows = returnedRows.concat(updated);
         }
 
-        // Se o Supabase gerou IDs reais, nós atualizamos o DOM para que não repita o INSERT na próxima vez
+        // Atualizamos os IDs reais no DOM
         if (returnedRows.length > 0) {
             returnedRows.forEach(dbRow => {
-                if (dbRow.json_data && dbRow.json_data.id) {
-                    const tempId = dbRow.json_data.id;
+                if (dbRow.extras && dbRow.extras.tempId) {
+                    const tempId = dbRow.extras.tempId;
                     if (tempId.startsWith('row_')) {
-                        const domRow = document.getElementById(tempId);
-                        if (domRow) {
-                            domRow.id = dbRow.id; // Atualiza o elemento <tr> com o ID numérico real
-                        }
+                        const domRows = document.querySelectorAll(`[id="${tempId}"]`);
+                        domRows.forEach(domRow => {
+                            domRow.id = dbRow.id; // Atualiza com UUID
+                        });
                     }
                 }
             });
@@ -865,23 +893,26 @@ async function loadDataFromSupabase() {
         document.querySelectorAll('#table-cerimoniarios tbody.bloco-missa').forEach(tb => tb.remove());
         document.querySelectorAll('.linha-separadora-semana').forEach(row => row.remove());
 
-        let countCoroinhas = 0;
-        let countCerimoniarios = 0;
         let latestMesAno = null;
 
         if (escalas && escalas.length > 0) {
             escalas.forEach(row => {
-                const rowData = row.json_data || {};
+                const rowData = row.extras || {};
                 rowData.id = row.id; 
                 if (row.data) rowData.dateVal = row.data;
-                if (row.mesAno && !latestMesAno) latestMesAno = row.mesAno;
+                if (row.horario) rowData.timeVal = row.horario;
+                if (row.local) rowData.localVal = row.local;
+                if (row.observacao) rowData.obsHtml = row.observacao;
+                if (rowData.mesAno && !latestMesAno) latestMesAno = rowData.mesAno;
 
-                if (row.tipo === 'coroinhas') {
-                    addRow('table-coroinhas', rowData);
-                    countCoroinhas++;
-                } else if (row.tipo === 'cerimoniarios') {
-                    addRow('table-cerimoniarios', rowData);
-                    countCerimoniarios++;
+                if (row.coroinhas) {
+                    const rowDataCor = { ...rowData, names: row.coroinhas };
+                    addRow('table-coroinhas', rowDataCor);
+                }
+                
+                if (row.cerimoniarios) {
+                    const rowDataCer = { ...rowData, names: row.cerimoniarios };
+                    addRow('table-cerimoniarios', rowDataCer);
                 }
             });
         }
