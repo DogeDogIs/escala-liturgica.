@@ -43,12 +43,12 @@ body {
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     color: var(--color-text);
     padding: 20px 35px;
     border-radius: var(--border-radius);
     margin-bottom: 25px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     position: sticky;
     top: 10px;
     z-index: 1000;
@@ -94,7 +94,8 @@ body {
     gap: 10px;
 }
 
-.month-year-inputs select, .month-year-inputs input {
+.month-year-inputs select,
+.month-year-inputs input {
     padding: 10px 15px;
     border: 2px solid transparent;
     border-radius: 6px;
@@ -106,7 +107,8 @@ body {
     cursor: pointer;
 }
 
-.month-year-inputs select:focus, .month-year-inputs input:focus {
+.month-year-inputs select:focus,
+.month-year-inputs input:focus {
     background: white;
     border-color: var(--color-gold);
 }
@@ -183,6 +185,13 @@ body {
 
 .fab:active {
     transform: scale(0.95);
+}
+
+.fab-save:hover {
+    color: #D97706;
+    background-color: #FFFDF5;
+    border-color: #FDE68A;
+    box-shadow: 0 6px 16px rgba(217, 119, 6, 0.15);
 }
 
 .fab-config:hover {
@@ -385,7 +394,9 @@ body {
     position: relative;
 }
 
-.escala-table td.day-cell, .escala-table td.obs-cell, .escala-table td.actions-cell {
+.escala-table td.day-cell,
+.escala-table td.obs-cell,
+.escala-table td.actions-cell {
     padding: 14px 16px !important;
 }
 
@@ -424,7 +435,8 @@ body {
 }
 
 /* Inputs (Date, Time, Names) */
-th.col-local, td.col-local {
+th.col-local,
+td.col-local {
     min-width: 130px;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -678,6 +690,7 @@ tbody.linha-separadora-semana td {
     background: transparent;
     z-index: 999990;
 }
+
 #dropdown-backdrop.show {
     display: block;
 }
@@ -836,7 +849,7 @@ hr {
     padding: 12px !important;
     margin-bottom: 10px !important;
     border-radius: 8px !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.06) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
 }
 
 .sublist-container.sublist-fullscreen .role-select,
@@ -933,8 +946,13 @@ hr {
 }
 
 @keyframes fadeInModal {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .modal-content {
@@ -952,7 +970,9 @@ hr {
 }
 
 @keyframes scaleUp {
-    to { transform: scale(1); }
+    to {
+        transform: scale(1);
+    }
 }
 
 .modal-header {
@@ -999,6 +1019,7 @@ hr {
     border-bottom: 2px solid var(--color-border);
     padding-bottom: 10px;
 }
+
 .config-tab-btn {
     padding: 8px 16px;
     background: #f1f1f1;
@@ -1010,9 +1031,11 @@ hr {
     color: #555;
     transition: all 0.2s;
 }
+
 .config-tab-btn:hover {
     background: #e0e0e0;
 }
+
 .config-tab-btn.active {
     background: var(--color-wine);
     color: white;
@@ -1096,31 +1119,38 @@ hr {
     body {
         padding-bottom: 90px;
     }
+
     .app-container {
         padding: 10px;
     }
+
     .printable-area {
         padding: 15px 10px;
         border-radius: 12px;
     }
+
     .app-header {
         flex-direction: column;
         align-items: center;
         text-align: center;
         gap: 15px;
     }
+
     .header-left {
         align-items: center;
     }
+
     .month-year-inputs {
         flex-direction: column;
         align-items: center;
         gap: 8px;
     }
+
     .header-title h1 {
         font-size: 1.3rem;
         word-wrap: break-word;
     }
+
     .month-year-inputs label {
         display: flex;
         flex-direction: row;
@@ -1130,12 +1160,14 @@ hr {
         width: 100%;
         font-size: 0.9rem;
     }
+
     .month-year-inputs select {
         min-height: 44px;
         font-size: 0.95rem;
         flex: 1;
         max-width: 140px;
     }
+
     .tabs-container {
         flex-direction: column;
         align-items: center;
@@ -1143,16 +1175,19 @@ hr {
         width: 100%;
         margin-bottom: 15px;
     }
+
     .tabs {
         width: 100%;
         justify-content: center;
     }
+
     .tab-btn {
         flex: 1;
         padding: 10px;
         font-size: 0.95rem;
         text-align: center;
     }
+
     .color-picker-container {
         width: 100%;
         max-width: 100%;
@@ -1163,6 +1198,7 @@ hr {
         border-radius: 12px;
         margin-bottom: 5px;
     }
+
     .table-wrapper {
         width: 100%;
         overflow-x: auto;
@@ -1171,40 +1207,53 @@ hr {
         border-radius: 8px;
         margin-bottom: 20px;
     }
-    .escala-table th, .escala-table td {
+
+    .escala-table th,
+    .escala-table td {
         padding: 8px 10px;
         font-size: 15px !important;
-        min-width: 120px; /* prevent squishing */
+        min-width: 120px;
+        /* prevent squishing */
     }
-    .escala-table tr.main-row > th:nth-child(1), 
-    .escala-table tr.main-row > td:nth-child(1) {
-        min-width: 95px; 
+
+    .escala-table tr.main-row>th:nth-child(1),
+    .escala-table tr.main-row>td:nth-child(1) {
+        min-width: 95px;
         max-width: 95px;
         width: 95px;
-        padding: 4px; /* reduce padding for date column */
+        padding: 4px;
+        /* reduce padding for date column */
     }
+
     .escala-table th {
         white-space: nowrap;
     }
+
     .date-input {
         padding: 8px 4px;
         font-size: 13px;
         min-height: 44px;
     }
-    .time-input, .name-input, .local-select, .role-select {
+
+    .time-input,
+    .name-input,
+    .local-select,
+    .role-select {
         min-height: 44px;
         font-size: 14px;
     }
+
     /* Only fix the first column of the MAIN rows, avoid squishing sublist */
-    .escala-table tr.main-row > th:nth-child(1),
-    .escala-table tr.main-row > td:nth-child(1) {
+    .escala-table tr.main-row>th:nth-child(1),
+    .escala-table tr.main-row>td:nth-child(1) {
         position: sticky;
         left: 0;
         background-color: #FFFFFF;
         z-index: 2;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
     }
-    .escala-table tr.main-row > th:nth-child(1) {
+
+    .escala-table tr.main-row>th:nth-child(1) {
         background-color: var(--color-wine);
         color: white;
     }
@@ -1213,25 +1262,29 @@ hr {
     .sublist-row td {
         position: relative;
     }
+
     .sublist-container {
         position: relative;
         left: 0;
         width: 100%;
         box-sizing: border-box;
     }
+
     .sublist-roles .role-item {
         flex-wrap: wrap;
         gap: 6px;
     }
+
     .sublist-roles .role-select {
         flex: 1 1 120px;
         min-height: 44px;
     }
+
     .sublist-roles .role-val {
         flex: 2 1 140px;
         min-height: 44px;
     }
-    
+
     /* Make FAB buttons horizontal on bottom for mobile */
     .fab-container {
         flex-direction: row;
@@ -1281,18 +1334,23 @@ hr {
         border-top: 3px solid var(--color-wine) !important;
         background-color: #ffffff !important;
     }
-    
+
     @keyframes slideUpMenu {
-        from { transform: translateY(100%); }
-        to { transform: translateY(0); }
+        from {
+            transform: translateY(100%);
+        }
+
+        to {
+            transform: translateY(0);
+        }
     }
-    
+
     .dropdown-header {
         font-size: 0.85rem !important;
         color: #666 !important;
         padding: 10px 15px 5px 15px !important;
     }
-    
+
     .dropdown-item {
         padding: 14px 16px !important;
         font-size: 1rem !important;
@@ -1306,7 +1364,7 @@ hr {
     .dropdown-item:active {
         background-color: #e9ecef !important;
     }
-    
+
     .modal-content {
         width: 100vw;
         max-width: 100vw;
@@ -1315,6 +1373,7 @@ hr {
         border-radius: 0;
         padding: 15px;
     }
+
     .close-modal {
         min-height: 44px;
         min-width: 44px;
@@ -1325,27 +1384,36 @@ hr {
         border-radius: 50%;
         margin-bottom: 0;
     }
-    .btn, .btn-dropdown, .dropdown-item {
+
+    .btn,
+    .btn-dropdown,
+    .dropdown-item {
         min-height: 44px;
     }
+
     .servers-management {
         flex-direction: column;
     }
+
     .event-config-item {
         flex-wrap: wrap;
         align-items: center;
         gap: 8px;
     }
+
     .event-config-item input[type="text"] {
         flex: 1;
         min-width: 0;
     }
+
     .btn-remove-role {
         flex-shrink: 0;
     }
+
     .config-tabs {
         flex-wrap: wrap;
     }
+
     .config-tab-btn {
         flex: 1 1 45%;
         min-height: 44px;
@@ -1355,8 +1423,6 @@ hr {
 /* Print Rules */
 /* Botão Salvar (FAB) com feedback */
 .fab-save {
-    background-color: var(--color-gold);
-    color: var(--color-wine);
     transition: all 0.3s ease;
 }
 
@@ -1374,10 +1440,12 @@ hr {
         box-shadow: 0 0 0 0 rgba(220, 167, 58, 0.7);
         transform: scale(1);
     }
+
     50% {
         box-shadow: 0 0 0 10px rgba(220, 167, 58, 0);
         transform: scale(1.05);
     }
+
     100% {
         box-shadow: 0 0 0 0 rgba(220, 167, 58, 0);
         transform: scale(1);
@@ -1385,7 +1453,9 @@ hr {
 }
 
 @keyframes spinSave {
-    100% { transform: rotate(360deg); }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 @media print {
@@ -1394,7 +1464,8 @@ hr {
         margin: 10mm;
     }
 
-    html, body {
+    html,
+    body {
         height: 100%;
         overflow: hidden;
         page-break-inside: avoid;
@@ -1444,7 +1515,8 @@ hr {
         page-break-inside: auto;
     }
 
-    .escala-table tr, .sublist-row {
+    .escala-table tr,
+    .sublist-row {
         page-break-inside: avoid;
         page-break-after: auto;
     }
@@ -1537,11 +1609,13 @@ hr {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
-    .local-highlight, .colorable {
+
+    .local-highlight,
+    .colorable {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
-    
+
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;

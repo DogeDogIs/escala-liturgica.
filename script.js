@@ -291,23 +291,39 @@ function addNewLocalConfig() { sysConfig.locais.push('Novo Local'); renderLocais
 function removeLocalConfig(idx) { if (confirm('Excluir local?')) { sysConfig.locais.splice(idx, 1); renderLocaisConfigList(); } }
 
 function renderNamesConfigList() {
-    const list = document.getElementById('nomes-config-list');
-    if (!list) return;
-    list.innerHTML = '';
-    sysConfig.nomes.forEach((n, idx) => {
-        const div = document.createElement('div');
-        div.className = 'event-config-item';
-        div.innerHTML = `
-            <input type="text" value="${n.nome}" placeholder="Nome do Servidor" oninput="sysConfig.nomes[${idx}].nome = this.value">
-            <label class="checkbox-group"><input type="checkbox" ${n.is_coroinha ? 'checked' : ''} onchange="sysConfig.nomes[${idx}].is_coroinha = this.checked"> Coroinha</label>
-            <label class="checkbox-group"><input type="checkbox" ${n.is_cerimoniario ? 'checked' : ''} onchange="sysConfig.nomes[${idx}].is_cerimoniario = this.checked"> Cerimoniário</label>
-            <button class="btn-remove-role" style="color:#d32f2f; margin-left:10px;" onclick="removeNameConfig(${idx})">✖</button>
-        `;
-        list.appendChild(div);
+    const coroinhas = [];
+    const cerimoniarios = [];
+    
+    sysConfig.nomes.forEach(n => {
+        if (n.is_coroinha) coroinhas.push(n.nome);
+        if (n.is_cerimoniario) cerimoniarios.push(n.nome);
     });
+    
+    const txtCoroinhas = document.getElementById('nomes-coroinhas-text');
+    const txtCerimoniarios = document.getElementById('nomes-cerimoniarios-text');
+    
+    if (txtCoroinhas) txtCoroinhas.value = coroinhas.join('\n');
+    if (txtCerimoniarios) txtCerimoniarios.value = cerimoniarios.join('\n');
 }
-function addNewNameConfig() { sysConfig.nomes.push({ nome: 'Novo Nome', is_coroinha: true, is_cerimoniario: false }); renderNamesConfigList(); }
-function removeNameConfig(idx) { if (confirm('Excluir servidor?')) { sysConfig.nomes.splice(idx, 1); renderNamesConfigList(); } }
+
+function processNamesFromTextareas() {
+    const txtCoroinhas = document.getElementById('nomes-coroinhas-text');
+    const txtCerimoniarios = document.getElementById('nomes-cerimoniarios-text');
+    if (!txtCoroinhas || !txtCerimoniarios) return;
+    
+    const coroinhasList = txtCoroinhas.value.split('\n').map(n => n.trim()).filter(n => n);
+    const cerimoniariosList = txtCerimoniarios.value.split('\n').map(n => n.trim()).filter(n => n);
+    
+    const allNames = new Set([...coroinhasList, ...cerimoniariosList]);
+    
+    sysConfig.nomes = Array.from(allNames).map(name => {
+        return {
+            nome: name,
+            is_coroinha: coroinhasList.includes(name),
+            is_cerimoniario: cerimoniariosList.includes(name)
+        };
+    }).sort((a, b) => a.nome.localeCompare(b.nome));
+}
 
 function renderRolesConfigList() {
     const list = document.getElementById('roles-list');
@@ -325,6 +341,7 @@ function removeRoleConfig(idx) { if (confirm('Excluir função?')) { sysConfig.f
 
 async function saveConfigAndClose() {
     try {
+        processNamesFromTextareas();
         const mesVal = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
         const anoVal = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
         const { error } = await supabaseClient.from('configuracoes').update({

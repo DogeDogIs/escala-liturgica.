@@ -148,9 +148,17 @@
 
                 <div id="config-nomes" class="config-tab-content" style="display:none;">
                     <h3 style="color:var(--color-wine); margin-bottom:10px; font-size:1.2rem;">Gerenciar Servidores</h3>
-                    <p class="modal-desc">Nomes aparecerão na pesquisa rápida (dropdown) ao digitar nas tabelas.</p>
-                    <div id="nomes-config-list" style="display:flex; flex-direction:column; gap:8px;"></div>
-                    <button class="btn btn-add" style="margin-top: 10px;" onclick="addNewNameConfig()">+ Novo Servidor</button>
+                    <p class="modal-desc">Digite os nomes (um por linha) nas colunas correspondentes.</p>
+                    <div style="display: flex; gap: 15px; margin-top: 15px;">
+                        <div style="flex: 1;">
+                            <h4 style="margin-bottom: 8px;">Coroinhas</h4>
+                            <textarea id="nomes-coroinhas-text" style="width: 100%; height: 250px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; resize: vertical;" placeholder="Um nome por linha..."></textarea>
+                        </div>
+                        <div style="flex: 1;">
+                            <h4 style="margin-bottom: 8px;">Cerimoniários</h4>
+                            <textarea id="nomes-cerimoniarios-text" style="width: 100%; height: 250px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; resize: vertical;" placeholder="Um nome por linha..."></textarea>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="config-funcoes" class="config-tab-content" style="display:none;">
