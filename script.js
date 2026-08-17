@@ -5,19 +5,22 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentFocusedCell = null;
 
-// Configs
-let eventsConfig = JSON.parse(localStorage.getItem('eventsConfigV2')) || [
-    { id: 'ev_1', name: 'Solenidade / Festa', color: '#FFEBEE', isGeneral: false },
-    { id: 'ev_2', name: 'Quaresma / Advento', color: '#F3E5F5', isGeneral: false },
-    { id: 'ev_3', name: 'Semana Santa', color: '#ffebee', isGeneral: true }
-];
-let rolesConfig = JSON.parse(localStorage.getItem('rolesConfigV2')) || [
-    'Coroinha 1', 'Coroinha 2', 'Coroinha 3', 'Sino', 'Vela 1', 'Vela 2', 'Cruz',
-    'Turiferário', 'Naveteiro', 'Cruciferário', 'Cerimonialista', 'Mitra', 'Báculo'
-];
-let coroinhasConfig = JSON.parse(localStorage.getItem('coroinhasConfigV2')) || ['João', 'Maria', 'Pedro', 'Lucas'];
-let cerimoniariosConfig = JSON.parse(localStorage.getItem('cerimoniariosConfigV2')) || ['Marcos', 'Tiago', 'Felipe', 'Ana'];
-let locaisConfig = JSON.parse(localStorage.getItem('locaisConfigV2')) || ['Igreja Matriz', 'Capela São José'];
+// Configs Globais (Supabase)
+let sysConfig = {
+    eventos: [
+        { nome: 'Solenidade / Festa', cor: '#FFEBEE', todos_participam: false, pintar_linha: true },
+        { nome: 'Quaresma / Advento', cor: '#F3E5F5', todos_participam: false, pintar_linha: true },
+        { nome: 'Semana Santa', cor: '#ffebee', todos_participam: true, pintar_linha: true }
+    ],
+    locais: ['Igreja Matriz', 'Capela São José'],
+    nomes: [
+        { nome: 'João', is_coroinha: true, is_cerimoniario: false },
+        { nome: 'Maria', is_coroinha: true, is_cerimoniario: false },
+        { nome: 'Marcos', is_coroinha: false, is_cerimoniario: true },
+        { nome: 'Tiago', is_coroinha: false, is_cerimoniario: true }
+    ],
+    funcoes_extras: ['Coroinha 1', 'Sino', 'Vela 1', 'Cruz', 'Turiferário']
+};
 
 // ====== ROTEAMENTO E INICIALIZAÇÃO ======
 document.addEventListener('DOMContentLoaded', async () => {
@@ -159,7 +162,9 @@ function handleNameInput(input) {
     const container = input.closest('.name-cell') || input.closest('.role-item');
     const table = input.closest('table');
     const isCoroinhas = table.id.includes('coroinhas');
-    const configList = isCoroinhas ? coroinhasConfig : cerimoniariosConfig;
+    const configList = isCoroinhas 
+        ? sysConfig.nomes.filter(n => n.is_coroinha).map(n => n.nome) 
+        : sysConfig.nomes.filter(n => n.is_cerimoniario).map(n => n.nome);
 
     document.querySelectorAll('.autocomplete-list.show').forEach(ul => {
         if (ul.parentElement !== container) ul.classList.remove('show');
@@ -207,12 +212,12 @@ function selectAutocomplete(name, liElement) {
 }
 
 function getLocalSelectOptionsHTML(selectedValue = '') {
-    const defaultLocal = locaisConfig[0] || '';
+    const defaultLocal = sysConfig.locais[0] || '';
     const cleanSelected = selectedValue ? selectedValue.replace('📍 ', '').replace('📍', '').trim() : defaultLocal;
-    const effectiveSelected = locaisConfig.includes(cleanSelected) ? cleanSelected : defaultLocal;
+    const effectiveSelected = sysConfig.locais.includes(cleanSelected) ? cleanSelected : defaultLocal;
 
     let html = '';
-    locaisConfig.forEach((local, idx) => {
+    sysConfig.locais.forEach((local, idx) => {
         const isDefault = (idx === 0);
         const label = isDefault ? local : `📍 ${local}`;
         const isSelected = (local === effectiveSelected);
@@ -233,7 +238,7 @@ function updateAllLocalSelects() {
 function openConfigModal() {
     renderEventsConfigList();
     renderLocaisConfigList();
-    renderServersConfigList();
+    renderNamesConfigList();
     renderRolesConfigList();
     document.getElementById('config-modal').classList.add('show');
 }
@@ -251,79 +256,82 @@ function openConfigTab(evt, tabId) {
 function renderEventsConfigList() {
     const list = document.getElementById('events-list');
     list.innerHTML = '';
-    eventsConfig.forEach(ev => {
-        if (ev.paintRow === undefined) ev.paintRow = true;
-        
+    sysConfig.eventos.forEach((ev, idx) => {
         const div = document.createElement('div');
         div.className = 'event-config-item';
         div.innerHTML = `
-            <input type="color" value="${ev.color}" onchange="updateEventObj('${ev.id}', 'color', this.value)">
-            <input type="text" value="${ev.name}" placeholder="Nome do Evento" oninput="updateEventObj('${ev.id}', 'name', this.value)">
-            <label class="checkbox-group"><input type="checkbox" ${ev.isGeneral ? 'checked' : ''} onchange="updateEventObj('${ev.id}', 'isGeneral', this.checked)"> Todos</label>
-            <label class="checkbox-group"><input type="checkbox" ${ev.paintRow ? 'checked' : ''} onchange="updateEventObj('${ev.id}', 'paintRow', this.checked)"> Pintar Linha</label>
-            <button class="btn-remove-role" style="color:#d32f2f; margin-left:10px;" onclick="removeEventConfig('${ev.id}')">✖</button>
+            <input type="color" value="${ev.cor}" onchange="sysConfig.eventos[${idx}].cor = this.value">
+            <input type="text" value="${ev.nome}" placeholder="Nome do Evento" oninput="sysConfig.eventos[${idx}].nome = this.value">
+            <label class="checkbox-group"><input type="checkbox" ${ev.todos_participam ? 'checked' : ''} onchange="sysConfig.eventos[${idx}].todos_participam = this.checked"> Todos</label>
+            <label class="checkbox-group"><input type="checkbox" ${ev.pintar_linha ? 'checked' : ''} onchange="sysConfig.eventos[${idx}].pintar_linha = this.checked"> Pintar Linha</label>
+            <button class="btn-remove-role" style="color:#d32f2f; margin-left:10px;" onclick="removeEventConfig(${idx})">✖</button>
         `;
         list.appendChild(div);
     });
 }
-function updateEventObj(id, field, value) { const ev = eventsConfig.find(e => e.id === id); if (ev) ev[field] = value; }
-function addNewEventConfig() { eventsConfig.push({ id: 'ev_' + Date.now(), name: 'Novo Evento', color: '#ffffff', isGeneral: false, paintRow: true }); renderEventsConfigList(); }
-function removeEventConfig(id) { if (confirm('Excluir evento?')) { eventsConfig = eventsConfig.filter(e => e.id !== id); renderEventsConfigList(); } }
+function addNewEventConfig() { sysConfig.eventos.push({ nome: 'Novo Evento', cor: '#ffffff', todos_participam: false, pintar_linha: true }); renderEventsConfigList(); }
+function removeEventConfig(idx) { if (confirm('Excluir evento?')) { sysConfig.eventos.splice(idx, 1); renderEventsConfigList(); } }
 
 function renderLocaisConfigList() {
     const list = document.getElementById('locais-list');
     list.innerHTML = '';
-    locaisConfig.forEach((local, idx) => {
+    sysConfig.locais.forEach((local, idx) => {
         const div = document.createElement('div');
         div.className = 'event-config-item';
-        div.innerHTML = `<input type="text" value="${local}" oninput="updateLocalArray(${idx}, this.value)">
+        div.innerHTML = `<input type="text" value="${local}" oninput="sysConfig.locais[${idx}] = this.value">
                          <button class="btn-remove-role" style="color:#d32f2f; margin-left:10px;" onclick="removeLocalConfig(${idx})">✖</button>`;
         list.appendChild(div);
     });
 }
-function updateLocalArray(idx, val) { locaisConfig[idx] = val; }
-function addNewLocalConfig() { locaisConfig.push('Novo Local'); renderLocaisConfigList(); }
-function removeLocalConfig(idx) { if (confirm('Excluir local?')) { locaisConfig.splice(idx, 1); renderLocaisConfigList(); } }
+function addNewLocalConfig() { sysConfig.locais.push('Novo Local'); renderLocaisConfigList(); }
+function removeLocalConfig(idx) { if (confirm('Excluir local?')) { sysConfig.locais.splice(idx, 1); renderLocaisConfigList(); } }
 
-function renderServersConfigList() {
-    const renderList = (arr, containerId, type) => {
-        const list = document.getElementById(containerId);
-        list.innerHTML = '';
-        arr.forEach((name, idx) => {
-            const div = document.createElement('div');
-            div.className = 'event-config-item';
-            div.innerHTML = `<input type="text" value="${name}" oninput="updateServerArray('${type}', ${idx}, this.value)">
-                             <button class="btn-remove-role" style="color:#d32f2f; margin-left:5px;" onclick="removeServerConfig('${type}', ${idx})">✖</button>`;
-            list.appendChild(div);
-        });
-    };
-    renderList(coroinhasConfig, 'coroinhas-config-list', 'coroinhas');
-    renderList(cerimoniariosConfig, 'cerimoniarios-config-list', 'cerimoniarios');
+function renderNamesConfigList() {
+    const list = document.getElementById('nomes-config-list');
+    if (!list) return;
+    list.innerHTML = '';
+    sysConfig.nomes.forEach((n, idx) => {
+        const div = document.createElement('div');
+        div.className = 'event-config-item';
+        div.innerHTML = `
+            <input type="text" value="${n.nome}" placeholder="Nome do Servidor" oninput="sysConfig.nomes[${idx}].nome = this.value">
+            <label class="checkbox-group"><input type="checkbox" ${n.is_coroinha ? 'checked' : ''} onchange="sysConfig.nomes[${idx}].is_coroinha = this.checked"> Coroinha</label>
+            <label class="checkbox-group"><input type="checkbox" ${n.is_cerimoniario ? 'checked' : ''} onchange="sysConfig.nomes[${idx}].is_cerimoniario = this.checked"> Cerimoniário</label>
+            <button class="btn-remove-role" style="color:#d32f2f; margin-left:10px;" onclick="removeNameConfig(${idx})">✖</button>
+        `;
+        list.appendChild(div);
+    });
 }
-function updateServerArray(type, idx, val) { type === 'coroinhas' ? coroinhasConfig[idx] = val : cerimoniariosConfig[idx] = val; }
-function addNewServer(type) { type === 'coroinhas' ? coroinhasConfig.push('Nome') : cerimoniariosConfig.push('Nome'); renderServersConfigList(); }
-function removeServerConfig(type, idx) { type === 'coroinhas' ? coroinhasConfig.splice(idx, 1) : cerimoniariosConfig.splice(idx, 1); renderServersConfigList(); }
+function addNewNameConfig() { sysConfig.nomes.push({ nome: 'Novo Nome', is_coroinha: true, is_cerimoniario: false }); renderNamesConfigList(); }
+function removeNameConfig(idx) { if (confirm('Excluir servidor?')) { sysConfig.nomes.splice(idx, 1); renderNamesConfigList(); } }
 
 function renderRolesConfigList() {
     const list = document.getElementById('roles-list');
     list.innerHTML = '';
-    rolesConfig.forEach((role, idx) => {
+    sysConfig.funcoes_extras.forEach((role, idx) => {
         const div = document.createElement('div');
         div.className = 'event-config-item';
-        div.innerHTML = `<input type="text" value="${role}" oninput="rolesConfig[${idx}] = this.value">
+        div.innerHTML = `<input type="text" value="${role}" oninput="sysConfig.funcoes_extras[${idx}] = this.value">
                          <button class="btn-remove-role" style="color:#d32f2f; margin-left:10px;" onclick="removeRoleConfig(${idx})">✖</button>`;
         list.appendChild(div);
     });
 }
-function addNewRoleConfig() { rolesConfig.push('Nova Função'); renderRolesConfigList(); }
-function removeRoleConfig(idx) { if (confirm('Excluir função?')) { rolesConfig.splice(idx, 1); renderRolesConfigList(); } }
+function addNewRoleConfig() { sysConfig.funcoes_extras.push('Nova Função'); renderRolesConfigList(); }
+function removeRoleConfig(idx) { if (confirm('Excluir função?')) { sysConfig.funcoes_extras.splice(idx, 1); renderRolesConfigList(); } }
 
-function saveConfigAndClose() {
-    localStorage.setItem('eventsConfigV2', JSON.stringify(eventsConfig));
-    localStorage.setItem('locaisConfigV2', JSON.stringify(locaisConfig));
-    localStorage.setItem('coroinhasConfigV2', JSON.stringify(coroinhasConfig));
-    localStorage.setItem('cerimoniariosConfigV2', JSON.stringify(cerimoniariosConfig));
-    localStorage.setItem('rolesConfigV2', JSON.stringify(rolesConfig));
+async function saveConfigAndClose() {
+    try {
+        const { error } = await supabaseClient.from('configuracoes').update({
+            eventos: sysConfig.eventos,
+            locais: sysConfig.locais,
+            nomes: sysConfig.nomes,
+            funcoes_extras: sysConfig.funcoes_extras
+        }).eq('id', 1);
+        if (error) throw error;
+    } catch (err) {
+        console.error("Erro ao salvar config", err);
+        alert("Erro ao salvar configurações na nuvem.");
+    }
 
     document.querySelectorAll('.role-select').forEach(select => { select.innerHTML = getRoleSelectOptionsHTML(select.value); });
     updateAllLocalSelects();
@@ -385,10 +393,10 @@ function toggleDropdown(btn) {
 
 function getDropdownHTML(hasSublist) {
     let html = `<div class="dropdown-header">Eventos:</div>`;
-    eventsConfig.forEach(ev => {
-        html += `<button class="dropdown-item" onclick="applyEvent(this, '${ev.id}')">
-                    <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:${ev.color}; margin-right:8px; border:1px solid #ccc;"></span>
-                    ${ev.name} ${ev.isGeneral ? '(Convocação)' : ''}
+    sysConfig.eventos.forEach(ev => {
+        html += `<button class="dropdown-item" onclick="applyEvent(this, '${ev.nome}')">
+                    <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:${ev.cor}; margin-right:8px; border:1px solid #ccc;"></span>
+                    ${ev.nome} ${ev.todos_participam ? '(Convocação)' : ''}
                  </button>`;
     });
     html += `<hr><button class="dropdown-item text-danger" onclick="applyEvent(this, null)">Remover Evento (Normalizar)</button>`;
@@ -454,17 +462,17 @@ function applyEvent(btn, eventId) {
     }
 
     if (eventId) {
-        const ev = eventsConfig.find(e => e.id === eventId);
+        const ev = sysConfig.eventos.find(e => e.nome === eventId);
         if (ev) {
-            if (ev.paintRow !== false) {
-                tr.style.backgroundColor = hexToRgba(ev.color, 0.15);
+            if (ev.pintar_linha !== false) {
+                tr.style.backgroundColor = hexToRgba(ev.cor, 0.15);
             }
-            tr.dataset.eventId = ev.id;
+            tr.dataset.eventId = ev.nome;
 
-            const badgeHtml = `<span class="event-badge" contenteditable="false" style="display:inline-block; margin-bottom:4px; padding:3px 6px; background:${ev.color}; color:#111; font-size:0.75rem; border-radius:4px; border:1px solid rgba(0,0,0,0.1); font-weight:bold; box-shadow: inset 0 0 0 1000px ${ev.color}; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${ev.name}</span><br class="event-badge-br no-print" contenteditable="false">`;
+            const badgeHtml = `<span class="event-badge" contenteditable="false" style="display:inline-block; margin-bottom:4px; padding:3px 6px; background:${ev.cor}; color:#111; font-size:0.75rem; border-radius:4px; border:1px solid rgba(0,0,0,0.1); font-weight:bold; box-shadow: inset 0 0 0 1000px ${ev.cor}; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${ev.nome}</span><br class="event-badge-br no-print" contenteditable="false">`;
             obsCell.insertAdjacentHTML('afterbegin', badgeHtml);
 
-            if (ev.isGeneral) {
+            if (ev.todos_participam) {
                 tr.dataset.wasGeneral = 'true';
                 if (!(tr.nextElementSibling && tr.nextElementSibling.classList.contains('sublist-row'))) {
                     createSublist(tr, type);
@@ -481,7 +489,7 @@ function handleLocalChange(selectEl) {
 
     let val = selectEl.value;
     selectEl.dataset.previousValue = val;
-    const defaultLocal = locaisConfig[0] || '';
+    const defaultLocal = sysConfig.locais[0] || '';
     const td = selectEl.closest('td');
 
     if (td) {
@@ -496,7 +504,7 @@ function handleLocalChange(selectEl) {
 function getRoleSelectOptionsHTML(selectedValue = '') {
     let options = '';
     let found = false;
-    rolesConfig.forEach(r => {
+    sysConfig.funcoes_extras.forEach(r => {
         if (r === selectedValue) found = true;
         options += `<option value="${r}" ${r === selectedValue ? 'selected' : ''}>${r}</option>`;
     });
@@ -545,7 +553,7 @@ function addDynamicRole(btn) {
     const div = document.createElement('div');
     div.className = 'role-item';
     div.style.position = 'relative';
-    div.innerHTML = `<select class="role-select" onchange="saveData()">${getRoleSelectOptionsHTML(rolesConfig[0] || 'Função')}</select> 
+    div.innerHTML = `<select class="role-select" onchange="saveData()">${getRoleSelectOptionsHTML(sysConfig.funcoes_extras[0] || 'Função')}</select> 
                      <input type="text" class="colorable name-input role-val" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)">
                      <button class="btn-remove-role no-print" onclick="removeRole(this)">&times;</button>`;
     btn.previousElementSibling.appendChild(div);
@@ -565,9 +573,9 @@ function addRow(tableId, data = null) {
 
     const localSelect = newRow.querySelector('.local-select');
     if (localSelect) {
-        const savedLocal = (data && data.localVal) ? data.localVal : (locaisConfig[0] || '');
+        const savedLocal = (data && data.localVal) ? data.localVal : (sysConfig.locais[0] || '');
         const cleanSaved = savedLocal.replace('📍 ', '').replace('📍', '').trim();
-        const effectiveLocal = locaisConfig.includes(cleanSaved) ? cleanSaved : (locaisConfig[0] || '');
+        const effectiveLocal = sysConfig.locais.includes(cleanSaved) ? cleanSaved : (sysConfig.locais[0] || '');
         localSelect.innerHTML = getLocalSelectOptionsHTML(effectiveLocal);
         localSelect.value = effectiveLocal;
         handleLocalChange(localSelect);
@@ -599,10 +607,10 @@ function addRow(tableId, data = null) {
             newRow.style.backgroundColor = data.rowColor;
             newRow.dataset.wasGeneral = data.wasGeneral ? 'true' : 'false';
 
-            const ev = eventsConfig.find(e => e.id === data.eventId);
+            const ev = sysConfig.eventos.find(e => e.nome === data.eventId);
             if (ev && obsCell && !obsCell.querySelector('.event-badge')) {
-                const rgbaColor = hexToRgba(ev.color, 0.6);
-                const badgeHtml = `<span class="event-badge" contenteditable="false" style="display:inline-block; margin-bottom:4px; padding:3px 6px; background:${rgbaColor}; color:#111; font-size:0.75rem; border-radius:4px; border:1px solid rgba(0,0,0,0.1); font-weight:bold; box-shadow: inset 0 0 0 1000px ${rgbaColor}; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${ev.name}</span><br class="event-badge-br no-print" contenteditable="false">`;
+                const rgbaColor = hexToRgba(ev.cor, 0.6);
+                const badgeHtml = `<span class="event-badge" contenteditable="false" style="display:inline-block; margin-bottom:4px; padding:3px 6px; background:${rgbaColor}; color:#111; font-size:0.75rem; border-radius:4px; border:1px solid rgba(0,0,0,0.1); font-weight:bold; box-shadow: inset 0 0 0 1000px ${rgbaColor}; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${ev.nome}</span><br class="event-badge-br no-print" contenteditable="false">`;
                 obsCell.insertAdjacentHTML('afterbegin', badgeHtml);
             }
             if (data.wasGeneral) applyGeneralDOM(newRow, type);
@@ -645,7 +653,8 @@ async function removeRow(btn) {
 
 // --- DADOS E SUPABASE CRUD ---
 
-let saveTimeout = null;
+let inactivityTimeout = null;
+let isDirty = false;
 
 function saveData() {
     const mes = document.getElementById('mes') ? document.getElementById('mes').value : '';
@@ -655,12 +664,35 @@ function saveData() {
     if (printEl) printEl.innerText = mesAno;
     applyWeekSeparator();
 
-    // Debounce: Salva 2 segundos após parar de interagir
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(async () => {
-        await syncToSupabase();
-    }, 2000);
+    isDirty = true;
+    const saveBtn = document.getElementById('btn-manual-save');
+    if (saveBtn) saveBtn.classList.add('show');
+
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(async () => {
+        if (isDirty) {
+            await syncToSupabase();
+        }
+    }, 5 * 60 * 1000); // 5 minutos inativo salva automático
 }
+
+async function manualSave() {
+    if (!isDirty) return;
+    await syncToSupabase();
+}
+
+// Autosave instantâneo ao sair da edição
+document.addEventListener('focusout', (e) => {
+    setTimeout(() => {
+        const activeElement = document.activeElement;
+        // Se o usuário clicou fora de qualquer campo de entrada
+        if (!activeElement || (!activeElement.matches('input') && !activeElement.matches('select') && !activeElement.matches('button.btn-manual-save'))) {
+            if (isDirty) {
+                syncToSupabase();
+            }
+        }
+    }, 50);
+});
 
 function getTableData(tableId) {
     const table = document.getElementById(tableId);
@@ -719,6 +751,12 @@ function getTableData(tableId) {
 }
 
 async function syncToSupabase() {
+    if (!isDirty) return;
+    isDirty = false;
+    
+    const saveBtn = document.getElementById('btn-manual-save');
+    if (saveBtn) saveBtn.classList.remove('show');
+
     const mes = document.getElementById('mes') ? document.getElementById('mes').value : '';
     const ano = document.getElementById('ano') ? document.getElementById('ano').value : '';
     const mesAno = `${mes} ${ano}`;
@@ -754,6 +792,17 @@ async function syncToSupabase() {
 
 async function loadDataFromSupabase() {
     try {
+        // Busca Configurações
+        const { data: configData, error: configError } = await supabaseClient.from('configuracoes').select('*').eq('id', 1).single();
+        if (!configError && configData) {
+            if (configData.eventos) sysConfig.eventos = configData.eventos;
+            if (configData.locais) sysConfig.locais = configData.locais;
+            if (configData.nomes) sysConfig.nomes = configData.nomes;
+            if (configData.funcoes_extras) sysConfig.funcoes_extras = configData.funcoes_extras;
+        } else if (configError && configError.code === 'PGRST116') {
+            await supabaseClient.from('configuracoes').insert([{ id: 1, ...sysConfig }]);
+        }
+
         const { data: escalas, error } = await supabaseClient.from('escalas').select('*').order('data', { ascending: true });
         if (error) throw error;
 
@@ -882,7 +931,7 @@ function exportWhatsApp() {
         let localStr = '';
         if (localSelect && localSelect.value) {
             let val = localSelect.value.replace('📍 ', '').replace('📍', '').trim();
-            const defaultLocal = locaisConfig[0] || '';
+            const defaultLocal = sysConfig.locais[0] || '';
             if (val !== defaultLocal) val = '📍 ' + val;
             localStr = ' | ' + val;
         }
@@ -947,37 +996,36 @@ function exportPDF() {
 // --- SISTEMA DE BACKUP ---
 function exportData() {
     const data = {
-        escalaLiturgicaDataV2: localStorage.getItem('escalaLiturgicaDataV2'),
-        eventsConfigV2: localStorage.getItem('eventsConfigV2'),
-        locaisConfigV2: localStorage.getItem('locaisConfigV2'),
-        rolesConfigV2: localStorage.getItem('rolesConfigV2'),
-        coroinhasConfigV2: localStorage.getItem('coroinhasConfigV2'),
-        cerimoniariosConfigV2: localStorage.getItem('cerimoniariosConfigV2')
+        configuracoes: sysConfig,
+        coroinhas: getTableData('table-coroinhas'),
+        cerimoniarios: getTableData('table-cerimoniarios')
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'backup_escala.json';
+    link.download = 'backup_escala_supabase.json';
     link.click();
 }
 
-function importData(event) {
+async function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function (e) {
+    reader.onload = async function (e) {
         try {
             const data = JSON.parse(e.target.result);
-            if (data.escalaLiturgicaDataV2) localStorage.setItem('escalaLiturgicaDataV2', data.escalaLiturgicaDataV2);
-            if (data.eventsConfigV2) localStorage.setItem('eventsConfigV2', data.eventsConfigV2);
-            if (data.locaisConfigV2) localStorage.setItem('locaisConfigV2', data.locaisConfigV2);
-            if (data.rolesConfigV2) localStorage.setItem('rolesConfigV2', data.rolesConfigV2);
-            if (data.coroinhasConfigV2) localStorage.setItem('coroinhasConfigV2', data.coroinhasConfigV2);
-            if (data.cerimoniariosConfigV2) localStorage.setItem('cerimoniariosConfigV2', data.cerimoniariosConfigV2);
-            alert('Backup importado com sucesso! A página será recarregada.');
+            if (data.configuracoes) {
+                await supabaseClient.from('configuracoes').update({
+                    eventos: data.configuracoes.eventos,
+                    locais: data.configuracoes.locais,
+                    nomes: data.configuracoes.nomes,
+                    funcoes_extras: data.configuracoes.funcoes_extras
+                }).eq('id', 1);
+            }
+            alert('Backup importado para a nuvem com sucesso! A página será recarregada.');
             location.reload();
         } catch (err) {
-            alert('Erro ao importar: O arquivo JSON é inválido ou está corrompido.');
+            alert('Erro ao importar: O arquivo JSON é inválido ou ocorreu um erro de conexão.');
         }
     };
     reader.readAsText(file);

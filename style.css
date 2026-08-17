@@ -350,8 +350,6 @@ body {
 /* Tables */
 .table-wrapper {
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
     border-radius: 12px;
     border: none;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
@@ -1355,6 +1353,40 @@ hr {
 }
 
 /* Print Rules */
+/* Botão Salvar Manual */
+.btn-manual-save {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background-color: var(--color-gold);
+    color: var(--color-wine);
+    border: none;
+    border-radius: 30px;
+    padding: 10px 24px;
+    font-weight: bold;
+    font-size: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    cursor: pointer;
+    z-index: 999999;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+}
+.btn-manual-save.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+.btn-manual-save:hover {
+    background-color: #c9a635;
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+}
+
 @media print {
     @page {
         size: A4 portrait;
