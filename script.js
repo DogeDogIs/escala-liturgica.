@@ -598,25 +598,27 @@ function addRow(tableId, data = null) {
     }
 
     if (data) {
-        if (newRow.querySelector('.date-input')) newRow.querySelector('.date-input').value = data.dateVal;
-        if (newRow.querySelector('.data-cell')) newRow.querySelector('.data-cell').style.backgroundColor = data.dateColor;
+        if (newRow.querySelector('.date-input')) newRow.querySelector('.date-input').value = data.dateVal || '';
+        if (newRow.querySelector('.data-cell')) newRow.querySelector('.data-cell').style.backgroundColor = data.dateColor || '';
 
         const dayCell = newRow.querySelector('.day-cell');
-        if (dayCell) { dayCell.innerHTML = data.dayHtml; dayCell.style.backgroundColor = data.dayColor; }
+        if (dayCell) { dayCell.innerHTML = data.dayHtml || ''; dayCell.style.backgroundColor = data.dayColor || ''; }
 
-        if (newRow.querySelector('.time-input')) newRow.querySelector('.time-input').value = data.timeVal;
-        if (newRow.querySelector('.time-cell')) newRow.querySelector('.time-cell').style.backgroundColor = data.timeColor;
+        if (newRow.querySelector('.time-input')) newRow.querySelector('.time-input').value = data.timeVal || '';
+        if (newRow.querySelector('.time-cell')) newRow.querySelector('.time-cell').style.backgroundColor = data.timeColor || '';
 
         const nameInputs = newRow.querySelectorAll('.name-input');
-        data.names.forEach((n, idx) => {
-            if (nameInputs[idx]) {
-                nameInputs[idx].value = n.val;
-                nameInputs[idx].parentElement.style.backgroundColor = n.color;
-            }
-        });
+        if (data.names) {
+            data.names.forEach((n, idx) => {
+                if (nameInputs[idx]) {
+                    nameInputs[idx].value = n.val || '';
+                    nameInputs[idx].parentElement.style.backgroundColor = n.color || '';
+                }
+            });
+        }
 
         const obsCell = newRow.querySelector('.obs-cell');
-        if (obsCell) { obsCell.innerHTML = data.obsHtml; obsCell.style.backgroundColor = data.obsColor; }
+        if (obsCell) { obsCell.innerHTML = data.obsHtml || ''; obsCell.style.backgroundColor = data.obsColor || ''; }
 
         if (data.eventId) {
             newRow.dataset.eventId = data.eventId;
