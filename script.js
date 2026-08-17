@@ -290,29 +290,61 @@ function renderLocaisConfigList() {
 function addNewLocalConfig() { sysConfig.locais.push('Novo Local'); renderLocaisConfigList(); }
 function removeLocalConfig(idx) { if (confirm('Excluir local?')) { sysConfig.locais.splice(idx, 1); renderLocaisConfigList(); } }
 
+let tempCoroinhas = [];
+let tempCerimoniarios = [];
+
 function renderNamesConfigList() {
-    const coroinhas = [];
-    const cerimoniarios = [];
+    tempCoroinhas = [];
+    tempCerimoniarios = [];
     
     sysConfig.nomes.forEach(n => {
-        if (n.is_coroinha) coroinhas.push(n.nome);
-        if (n.is_cerimoniario) cerimoniarios.push(n.nome);
+        if (n.is_coroinha) tempCoroinhas.push(n.nome);
+        if (n.is_cerimoniario) tempCerimoniarios.push(n.nome);
     });
     
-    const txtCoroinhas = document.getElementById('nomes-coroinhas-text');
-    const txtCerimoniarios = document.getElementById('nomes-cerimoniarios-text');
-    
-    if (txtCoroinhas) txtCoroinhas.value = coroinhas.join('\n');
-    if (txtCerimoniarios) txtCerimoniarios.value = cerimoniarios.join('\n');
+    renderCoroinhasList();
+    renderCerimoniariosList();
 }
 
+function renderCoroinhasList() {
+    const list = document.getElementById('coroinhas-config-list');
+    if (!list) return;
+    list.innerHTML = '';
+    tempCoroinhas.forEach((nome, idx) => {
+        const div = document.createElement('div');
+        div.className = 'event-config-item';
+        div.innerHTML = `
+            <input type="text" value="${nome}" placeholder="Nome" oninput="tempCoroinhas[${idx}] = this.value" style="flex:1;">
+            <button class="btn-remove-role" style="color:#d32f2f; margin-left:10px;" onclick="removeCoroinha(${idx})">✖</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function renderCerimoniariosList() {
+    const list = document.getElementById('cerimoniarios-config-list');
+    if (!list) return;
+    list.innerHTML = '';
+    tempCerimoniarios.forEach((nome, idx) => {
+        const div = document.createElement('div');
+        div.className = 'event-config-item';
+        div.innerHTML = `
+            <input type="text" value="${nome}" placeholder="Nome" oninput="tempCerimoniarios[${idx}] = this.value" style="flex:1;">
+            <button class="btn-remove-role" style="color:#d32f2f; margin-left:10px;" onclick="removeCerimoniario(${idx})">✖</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function addNewCoroinha() { tempCoroinhas.push('Novo Coroinha'); renderCoroinhasList(); }
+function removeCoroinha(idx) { tempCoroinhas.splice(idx, 1); renderCoroinhasList(); }
+
+function addNewCerimoniario() { tempCerimoniarios.push('Novo Cerimoniário'); renderCerimoniariosList(); }
+function removeCerimoniario(idx) { tempCerimoniarios.splice(idx, 1); renderCerimoniariosList(); }
+
 function processNamesFromTextareas() {
-    const txtCoroinhas = document.getElementById('nomes-coroinhas-text');
-    const txtCerimoniarios = document.getElementById('nomes-cerimoniarios-text');
-    if (!txtCoroinhas || !txtCerimoniarios) return;
-    
-    const coroinhasList = txtCoroinhas.value.split('\n').map(n => n.trim()).filter(n => n);
-    const cerimoniariosList = txtCerimoniarios.value.split('\n').map(n => n.trim()).filter(n => n);
+    const coroinhasList = tempCoroinhas.map(n => n.trim()).filter(n => n);
+    const cerimoniariosList = tempCerimoniarios.map(n => n.trim()).filter(n => n);
     
     const allNames = new Set([...coroinhasList, ...cerimoniariosList]);
     
