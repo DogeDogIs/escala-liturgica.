@@ -781,45 +781,58 @@ async function syncToSupabase() {
     const ano = document.getElementById('ano') ? document.getElementById('ano').value : '';
     const mesAno = `${mes} ${ano}`;
     
-    const mapRowForSupabase = (r, tipo) => {
+    const rowsToInsert = [];
+    const rowsToUpdate = [];
+
+    const processRow = (r, tipo) => {
         const obj = {
             tipo: tipo,
             data: r.dateVal || null,
             mesAno: mesAno,
             json_data: r
         };
-        // Se o ID não for um ID temporário do navegador (row_...), enviamos ele para fazer UPDATE
+        
         if (r.id && !r.id.toString().startsWith('row_')) {
             obj.id = parseInt(r.id);
+            rowsToUpdate.push(obj);
+        } else {
+            rowsToInsert.push(obj);
         }
-        return obj;
     };
 
-    const coroinhas = getTableData('table-coroinhas').map(r => mapRowForSupabase(r, 'coroinhas'));
-    const cerimoniarios = getTableData('table-cerimoniarios').map(r => mapRowForSupabase(r, 'cerimoniarios'));
+    getTableData('table-coroinhas').forEach(r => processRow(r, 'coroinhas'));
+    getTableData('table-cerimoniarios').forEach(r => processRow(r, 'cerimoniarios'));
     
-    const allRows = [...coroinhas, ...cerimoniarios];
-    
-    if (allRows.length > 0) {
-        try {
-            const { data: upsertedRows, error } = await supabaseClient.from('escalas').upsert(allRows).select();
-            if (error) throw error;
+    try {
+        let returnedRows = [];
+        
+        if (rowsToInsert.length > 0) {
+            const { data: inserted, error: errInsert } = await supabaseClient.from('escalas').insert(rowsToInsert).select();
+            if (errInsert) throw errInsert;
+            if (inserted) returnedRows = returnedRows.concat(inserted);
+        }
 
-            // Se o Supabase gerou IDs reais, nós atualizamos o DOM para que não repita o INSERT na próxima vez
-            if (upsertedRows) {
-                upsertedRows.forEach(dbRow => {
-                    if (dbRow.json_data && dbRow.json_data.id) {
-                        const tempId = dbRow.json_data.id;
-                        if (tempId.startsWith('row_')) {
-                            const domRow = document.getElementById(tempId);
-                            if (domRow) {
-                                domRow.id = dbRow.id; // Atualiza o elemento <tr> com o ID numérico real
-                            }
+        if (rowsToUpdate.length > 0) {
+            const { data: updated, error: errUpdate } = await supabaseClient.from('escalas').upsert(rowsToUpdate).select();
+            if (errUpdate) throw errUpdate;
+            if (updated) returnedRows = returnedRows.concat(updated);
+        }
+
+        // Se o Supabase gerou IDs reais, nós atualizamos o DOM para que não repita o INSERT na próxima vez
+        if (returnedRows.length > 0) {
+            returnedRows.forEach(dbRow => {
+                if (dbRow.json_data && dbRow.json_data.id) {
+                    const tempId = dbRow.json_data.id;
+                    if (tempId.startsWith('row_')) {
+                        const domRow = document.getElementById(tempId);
+                        if (domRow) {
+                            domRow.id = dbRow.id; // Atualiza o elemento <tr> com o ID numérico real
                         }
                     }
-                });
-            }
-        } catch (err) {
+                }
+            });
+        }
+    } catch (err) {
             console.error("Erro no Upsert:", err);
             isDirty = true;
             if (saveBtn) {
