@@ -13,11 +13,11 @@
             <div class="header-left">
                 <div class="header-title">
                     <h1>Paróquia Nossa Senhora das Graças</h1>
-                    <h2>Escala Litúrgica</h2>
+                    <h2 id="titulo-escala">Escala Litúrgica</h2>
                 </div>
                 <div class="month-year-inputs">
                     <label>Mês/Ano:
-                        <select id="mes" onchange="saveData()" class="custom-select">
+                        <select id="select-mes" onchange="updateTituloEscala(); saveData()" class="custom-select">
                             <option value="Janeiro">Janeiro</option>
                             <option value="Fevereiro">Fevereiro</option>
                             <option value="Março">Março</option>
@@ -31,7 +31,7 @@
                             <option value="Novembro">Novembro</option>
                             <option value="Dezembro">Dezembro</option>
                         </select>
-                        <select id="ano" onchange="saveData()" class="custom-select">
+                        <select id="select-ano" onchange="updateTituloEscala(); saveData()" class="custom-select">
                             <option value="2024">2024</option>
                             <option value="2025">2025</option>
                             <option value="2026" selected>2026</option>

@@ -325,11 +325,15 @@ function removeRoleConfig(idx) { if (confirm('Excluir função?')) { sysConfig.f
 
 async function saveConfigAndClose() {
     try {
+        const mesVal = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
+        const anoVal = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
         const { error } = await supabaseClient.from('configuracoes').update({
             eventos: sysConfig.eventos,
             locais: sysConfig.locais,
             nomes: sysConfig.nomes,
-            funcoes_extras: sysConfig.funcoes_extras
+            funcoes_extras: sysConfig.funcoes_extras,
+            mes_cabecalho: mesVal,
+            ano_cabecalho: anoVal
         }).eq('id', 1);
         if (error) throw error;
     } catch (err) {
@@ -674,12 +678,21 @@ async function removeRow(btn) {
 let inactivityTimeout = null;
 let isDirty = false;
 
+function updateTituloEscala() {
+    const mesEl = document.getElementById('select-mes');
+    const anoEl = document.getElementById('select-ano');
+    const tituloEl = document.getElementById('titulo-escala');
+    if (mesEl && anoEl && tituloEl) {
+        tituloEl.textContent = `${mesEl.value} de ${anoEl.value}`;
+    }
+}
+
 function saveData() {
-    const mes = document.getElementById('mes') ? document.getElementById('mes').value : '';
-    const ano = document.getElementById('ano') ? document.getElementById('ano').value : '';
+    const mes = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
+    const ano = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
     const mesAno = `${mes} ${ano}`;
     const printEl = document.getElementById('print-mes-ano');
-    if (printEl) printEl.innerText = mesAno;
+    if (printEl) printEl.innerText = `${mes} de ${ano}`;
     applyWeekSeparator();
 
     isDirty = true;
@@ -779,8 +792,8 @@ async function syncToSupabase() {
 
     isDirty = false;
 
-    const mes = document.getElementById('mes') ? document.getElementById('mes').value : '';
-    const ano = document.getElementById('ano') ? document.getElementById('ano').value : '';
+    const mes = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
+    const ano = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
     const mesAno = `${mes} ${ano}`;
 
     const rowsToInsert = [];
@@ -884,6 +897,12 @@ async function loadDataFromSupabase() {
             if (Array.isArray(configData.locais)) sysConfig.locais = configData.locais;
             if (Array.isArray(configData.nomes)) sysConfig.nomes = configData.nomes;
             if (Array.isArray(configData.funcoes_extras)) sysConfig.funcoes_extras = configData.funcoes_extras;
+            
+            const mesEl = document.getElementById('select-mes');
+            const anoEl = document.getElementById('select-ano');
+            if (mesEl && configData.mes_cabecalho) mesEl.value = configData.mes_cabecalho;
+            if (anoEl && configData.ano_cabecalho) anoEl.value = configData.ano_cabecalho;
+            updateTituloEscala();
         } else if (configError && configError.code === 'PGRST116') {
             await supabaseClient.from('configuracoes').insert([{ id: 1, ...sysConfig }]);
         }
@@ -920,20 +939,17 @@ async function loadDataFromSupabase() {
         }
 
         if (latestMesAno) {
-            const parts = latestMesAno.split(' ');
-            if (parts.length > 1) {
-                const mesEl = document.getElementById('mes');
-                const anoEl = document.getElementById('ano');
-                if (mesEl) mesEl.value = parts[0];
-                if (anoEl) anoEl.value = parts[1];
-                const printEl = document.getElementById('print-mes-ano');
-                if (printEl) printEl.innerText = latestMesAno;
+            const printEl = document.getElementById('print-mes-ano');
+            if (printEl) {
+                const mes = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
+                const ano = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
+                printEl.innerText = `${mes} de ${ano}`;
             }
         } else {
-            const mesEl = document.getElementById('mes');
-            const anoEl = document.getElementById('ano');
+            const mes = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
+            const ano = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
             const printEl = document.getElementById('print-mes-ano');
-            if (mesEl && anoEl && printEl) printEl.innerText = `${mesEl.value} ${anoEl.value}`;
+            if (printEl) printEl.innerText = `${mes} de ${ano}`;
         }
 
         highlightNextMass();
@@ -997,8 +1013,8 @@ function exportWhatsApp() {
     const rows = tbody.querySelectorAll('.main-row');
 
     let text = `*ESCALA DE ${activeTabId === 'tab-coroinhas' ? 'COROINHAS' : 'CERIMONIÁRIOS'}*\n`;
-    const mes = document.getElementById('mes').value;
-    const ano = document.getElementById('ano').value;
+    const mes = document.getElementById('select-mes').value;
+    const ano = document.getElementById('select-ano').value;
     text += `Mês: ${mes} / ${ano}\n\n`;
 
     rows.forEach(row => {
@@ -1068,9 +1084,9 @@ function highlightNextMass() {
 }
 
 function exportPDF() {
-    const mes = document.getElementById('mes').value;
-    const ano = document.getElementById('ano').value;
-    const mesAno = `${mes} ${ano}`;
+    const mes = document.getElementById('select-mes').value;
+    const ano = document.getElementById('select-ano').value;
+    const mesAno = `${mes} de ${ano}`;
     const originalTitle = document.title;
     if (mesAno) document.title = `Escala Litúrgica - ${mesAno}`;
     window.print();
