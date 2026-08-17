@@ -43,6 +43,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             await loadDataFromSupabase();
 
+            // Ativar Supabase Realtime para sincronização entre usuários
+            supabaseClient.channel('custom-all-channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'escalas' }, (payload) => {
+                    console.log('Atualização Realtime recebida na tabela escalas:', payload);
+                    loadDataFromSupabase();
+                })
+                .subscribe();
+
             const activeTab = localStorage.getItem('activeTabV2') || 'tab-coroinhas';
             const tabBtn = document.querySelector(`.tab-btn[onclick*="${activeTab}"]`);
             if (tabBtn) tabBtn.click();
