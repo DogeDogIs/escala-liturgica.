@@ -248,6 +248,9 @@ function updateAllLocalSelects() {
 
 // --- MODAL CONFIG ---
 function openConfigModal() {
+    closeAllDropdowns();
+    document.querySelectorAll('.autocomplete-list.show').forEach(ul => ul.classList.remove('show'));
+    document.querySelectorAll('.name-cell, .role-item').forEach(el => el.style.zIndex = '');
     renderEventsConfigList();
     renderLocaisConfigList();
     renderNamesConfigList();
