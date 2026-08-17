@@ -795,6 +795,16 @@ async function syncToSupabase() {
     const mes = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
     const ano = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
     const mesAno = `${mes} ${ano}`;
+    
+    // Atualiza automaticamente o cabeçalho nas configurações
+    try {
+        await supabaseClient.from('configuracoes').update({
+            mes_cabecalho: mes,
+            ano_cabecalho: ano
+        }).eq('id', 1);
+    } catch (e) {
+        console.error("Erro ao salvar cabeçalho nas configurações", e);
+    }
 
     const rowsToInsert = [];
     const rowsToUpdate = [];
