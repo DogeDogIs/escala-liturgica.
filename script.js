@@ -111,7 +111,7 @@ function hexToRgba(hex, alpha) {
 document.addEventListener('click', (e) => {
     const colorable = e.target.closest('.colorable');
     // Controle de cor de células
-    if (colorable && !e.target.matches('.name-input')) {
+    if (colorable) {
         if (currentFocusedCell) currentFocusedCell.classList.remove('selected-cell');
         currentFocusedCell = colorable;
         currentFocusedCell.classList.add('selected-cell');
