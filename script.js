@@ -41,19 +41,47 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.location.href = 'login.html';
                 return;
             }
-            await loadDataFromSupabase();
+
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const userDisplay = document.getElementById('user-display');
+            if (userDisplay && user) {
+                userDisplay.textContent = user.email;
+            }
+
+            await carregarConfiguracoes();
+            await carregarEscalas();
 
             // Ativar Supabase Realtime para sincronização entre usuários
             supabaseClient.channel('custom-all-channel')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'escalas' }, (payload) => {
                     console.log('Atualização Realtime recebida na tabela escalas:', payload);
-                    loadDataFromSupabase();
+                    carregarEscalas();
                 })
                 .subscribe();
 
             const activeTab = localStorage.getItem('activeTabV2') || 'tab-coroinhas';
             const tabBtn = document.querySelector(`.tab-btn[onclick*="${activeTab}"]`);
             if (tabBtn) tabBtn.click();
+
+            // Global Search Listener
+            const searchInput = document.getElementById('global-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const term = e.target.value.toLowerCase();
+                    document.querySelectorAll('.main-row').forEach(row => {
+                        let match = false;
+                        if (row.textContent.toLowerCase().includes(term)) {
+                            match = true;
+                        }
+                        row.style.display = match ? '' : 'none';
+                        // also toggle the sublist if it exists
+                        const next = row.nextElementSibling;
+                        if (next && next.classList.contains('sublist-row')) {
+                            next.style.display = match ? '' : 'none';
+                        }
+                    });
+                });
+            }
         }
     } catch (err) {
         console.error("Erro na verificação de sessão:", err);
@@ -96,6 +124,29 @@ async function logout() {
     }
 }
 
+// ====== MOBILE SIDEBAR ======
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    const isOpen = sidebar.classList.contains('translate-x-0');
+    
+    if (isOpen) {
+        // Fechar
+        sidebar.classList.remove('translate-x-0');
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('opacity-0');
+        setTimeout(() => overlay.classList.add('hidden'), 300); // aguarda animação do tailwind (duration-300)
+    } else {
+        // Abrir
+        sidebar.classList.remove('-translate-x-full');
+        sidebar.classList.add('translate-x-0');
+        overlay.classList.remove('hidden');
+        // Pequeno delay para a transição de opacidade do Tailwind (opacity-0 -> opacity-100)
+        setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+    }
+}
+
 function hexToRgba(hex, alpha) {
     if (!hex) return '';
     if (hex.startsWith('rgb')) return hex;
@@ -122,26 +173,35 @@ document.addEventListener('click', (e) => {
         }
     }
 
-    // Fechar autocomplete se clicar fora do input
-    if (!e.target.matches('.name-input')) {
-        document.querySelectorAll('.autocomplete-list.show').forEach(ul => ul.classList.remove('show'));
+    // Fechar autocomplete se clicar fora do container do input
+    if (!e.target.closest('.name-cell') && !e.target.closest('.role-item') && !e.target.closest('.autocomplete-list')) {
+        document.querySelectorAll('.autocomplete-list.show').forEach(ul => {
+            ul.classList.remove('show');
+            const container = ul.closest('.name-cell') || ul.closest('.role-item');
+            if (container) container.style.zIndex = '';
+            const tr = ul.closest('tr');
+            if (tr) tr.style.zIndex = '';
+        });
     }
 
     // Fechar dropdown de ações se clicar fora
     if (!e.target.closest('.dropdown') && !e.target.closest('.dropdown-menu')) {
-        closeAllDropdowns();
+        document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+        const backdrop = document.getElementById('dropdown-backdrop');
+        if (backdrop) backdrop.classList.remove('show');
     }
 });
 
-document.getElementById('cell-color-picker').addEventListener('input', function (e) {
-    if (currentFocusedCell) {
-        currentFocusedCell.style.backgroundColor = hexToRgba(e.target.value, 0.20);
-        saveData();
+// Fechar dropdowns e autocomplete se o usuário rolar a página ou a tabela (mas permitir rolar a própria lista)
+window.addEventListener('scroll', (e) => {
+    if (e.target && e.target.closest && (e.target.closest('.autocomplete-list') || e.target.closest('.dropdown-menu'))) {
+        return;
     }
-});
-function clearCellColor() {
-    if (currentFocusedCell) { currentFocusedCell.style.backgroundColor = ''; saveData(); }
-}
+    document.querySelectorAll('.autocomplete-list.show, .dropdown-menu.show').forEach(el => el.classList.remove('show'));
+    const backdrop = document.getElementById('dropdown-backdrop');
+    if (backdrop) backdrop.classList.remove('show');
+}, true);
+
 
 function calculateDayOfWeek(inputElement) {
     const dateStr = inputElement.value;
@@ -152,7 +212,24 @@ function calculateDayOfWeek(inputElement) {
     const tr = inputElement.closest('tr');
     const dayCell = tr.querySelector('.day-cell');
     if (dayCell) dayCell.innerText = dias[date.getDay()];
+
+    const rowId = tr.id;
     ordenarTodasTabelas();
+
+    if (rowId) destacarLinha(rowId);
+}
+
+function destacarLinha(rowId) {
+    setTimeout(() => {
+        const row = document.getElementById(rowId);
+        if (row) {
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            row.classList.add('linha-destaque');
+            setTimeout(() => {
+                row.classList.remove('linha-destaque');
+            }, 3000);
+        }
+    }, 100); // Dá tempo do DOM renderizar a nova ordem
 }
 
 function openTab(evt, tabId) {
@@ -169,14 +246,37 @@ function openTab(evt, tabId) {
 function handleNameInput(input) {
     const container = input.closest('.name-cell') || input.closest('.role-item');
     const table = input.closest('table');
-    const isCoroinhas = table.id.includes('coroinhas');
+    const tr = input.closest('tr');
+    const isCoroinhas = table ? table.id.includes('coroinhas') : true;
+
+    let currentDay = '';
+    if (tr) {
+        const dayCell = tr.querySelector('.day-cell');
+        if (dayCell) currentDay = dayCell.innerText.trim();
+    }
 
     const validNomes = Array.isArray(sysConfig.nomes) ? sysConfig.nomes : [];
-    const configList = isCoroinhas
-        ? validNomes.filter(n => n && n.is_coroinha && typeof n.nome === 'string').map(n => n.nome)
-        : validNomes.filter(n => n && n.is_cerimoniario && typeof n.nome === 'string').map(n => n.nome);
+    const availableServers = validNomes.filter(n => {
+        if (!n || typeof n.nome !== 'string') return false;
 
-    document.querySelectorAll('.name-cell, .role-item').forEach(el => el.style.zIndex = '');
+        // Verifica a função
+        const hasRole = isCoroinhas ? n.is_coroinha : n.is_cerimoniario;
+        if (!hasRole) return false;
+
+        // Verifica indisponibilidade
+        if (currentDay && Array.isArray(n.dias_indisponiveis) && n.dias_indisponiveis.includes(currentDay)) {
+            return false;
+        }
+
+        return true;
+    });
+
+    const configList = availableServers.map(n => n.nome);
+
+    document.querySelectorAll('.name-cell, .role-item').forEach(el => {
+        el.style.zIndex = '';
+        el.style.position = '';
+    });
     document.querySelectorAll('.autocomplete-list.show').forEach(ul => {
         if (ul.parentElement !== container) ul.classList.remove('show');
     });
@@ -198,14 +298,23 @@ function handleNameInput(input) {
             return `<li onmousedown="selectAutocomplete('${safeName}', this)">${name}</li>`;
         }).join('');
         ul.classList.add('show');
-        container.style.zIndex = '99999';
+        
+        // Usar posicionamento fixed para escapar totalmente do container da tabela (overflow)
+        const inputRect = input.getBoundingClientRect();
+        ul.style.position = 'fixed';
+        ul.style.left = inputRect.left + 'px';
+        ul.style.width = inputRect.width + 'px';
+        ul.style.zIndex = '999999';
 
-        const rect = ul.getBoundingClientRect();
-        if (rect.bottom > window.innerHeight) {
+        const ulHeight = ul.offsetHeight || 180;
+        const spaceBelow = window.innerHeight - inputRect.bottom;
+        const spaceAbove = inputRect.top;
+
+        if (spaceBelow < ulHeight && spaceAbove > spaceBelow) {
             ul.style.top = 'auto';
-            ul.style.bottom = '100%';
+            ul.style.bottom = (window.innerHeight - inputRect.top + 4) + 'px';
         } else {
-            ul.style.top = '100%';
+            ul.style.top = (inputRect.bottom + 4) + 'px';
             ul.style.bottom = 'auto';
         }
     } else {
@@ -220,6 +329,11 @@ function selectAutocomplete(name, liElement) {
 
     const ul = container.querySelector('.autocomplete-list');
     if (ul) ul.classList.remove('show');
+    
+    container.style.zIndex = '';
+    const tr = container.closest('tr');
+    if (tr) tr.style.zIndex = '';
+
     saveData();
 }
 
@@ -244,6 +358,242 @@ function updateAllLocalSelects() {
         select.innerHTML = getLocalSelectOptionsHTML(currentVal);
         handleLocalChange(select);
     });
+}
+
+// --- GERENCIAMENTO DE SERVIDORES (NOVO) ---
+let editingServidorId = null;
+
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+async function salvarNovoServidor() {
+    const nome = document.getElementById('novo-servidor-nome').value.trim();
+    const idadeStr = document.getElementById('novo-servidor-idade').value;
+    const funcao = document.getElementById('novo-servidor-funcao').value;
+    const tags = document.getElementById('novo-servidor-tags').value;
+
+    if (!nome) {
+        alert("Por favor, preencha o nome do servidor.");
+        return;
+    }
+
+    const checkboxes = document.querySelectorAll('.cb-dia-indisponivel');
+    const diasIndisponiveis = [];
+    checkboxes.forEach(cb => {
+        if (cb.checked) diasIndisponiveis.push(cb.value);
+    });
+
+    const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t !== "");
+
+    if (!Array.isArray(sysConfig.nomes)) sysConfig.nomes = [];
+
+    if (editingServidorId) {
+        // Edit mode
+        const serverIndex = sysConfig.nomes.findIndex(n => n.id === editingServidorId);
+        if (serverIndex !== -1) {
+            sysConfig.nomes[serverIndex] = {
+                ...sysConfig.nomes[serverIndex],
+                nome: nome,
+                is_coroinha: funcao === 'coroinha',
+                is_cerimoniario: funcao === 'cerimoniario',
+                idade: idadeStr ? parseInt(idadeStr) : null,
+                tags: tagsArray,
+                dias_indisponiveis: diasIndisponiveis
+            };
+        }
+    } else {
+        // Add mode
+        const newServer = {
+            id: generateUUID(),
+            nome: nome,
+            is_coroinha: funcao === 'coroinha',
+            is_cerimoniario: funcao === 'cerimoniario',
+            idade: idadeStr ? parseInt(idadeStr) : null,
+            tags: tagsArray,
+            dias_indisponiveis: diasIndisponiveis
+        };
+        sysConfig.nomes.push(newServer);
+    }
+
+    sysConfig.nomes.sort((a, b) => a.nome.localeCompare(b.nome));
+
+    try {
+        const { error } = await supabaseClient.from('configuracoes').update({
+            nomes: sysConfig.nomes
+        }).eq('id', 1);
+        if (error) throw error;
+
+        alert(editingServidorId ? "Servidor atualizado com sucesso!" : "Servidor cadastrado com sucesso!");
+        fecharModalServidor();
+        aplicarFiltrosServidores(); // Ao invés de apenas renderizar, reaplica filtros
+    } catch (err) {
+        console.error("Erro ao salvar servidor:", err);
+        alert("Erro ao salvar no banco de dados.");
+    }
+}
+
+function editarServidor(id) {
+    const servidor = sysConfig.nomes.find(n => n.id === id);
+    if (!servidor) return;
+
+    editingServidorId = id;
+
+    // Popula modal
+    document.getElementById('modal-servidor-titulo').innerText = 'Editar Servidor';
+    document.getElementById('btn-salvar-servidor-text').innerText = 'Salvar Edição';
+
+    document.getElementById('novo-servidor-nome').value = servidor.nome || '';
+    document.getElementById('novo-servidor-idade').value = servidor.idade || '';
+    document.getElementById('novo-servidor-funcao').value = servidor.is_cerimoniario ? 'cerimoniario' : 'coroinha';
+    document.getElementById('novo-servidor-tags').value = servidor.tags ? servidor.tags.join(', ') : '';
+
+    // Checkboxes de indisponibilidade
+    const checkboxes = document.querySelectorAll('.cb-dia-indisponivel');
+    checkboxes.forEach(cb => {
+        cb.checked = (servidor.dias_indisponiveis || []).includes(cb.value);
+    });
+
+    const modal = document.getElementById('modal-novo-servidor');
+    if (modal) modal.classList.remove('hidden');
+}
+
+async function excluirServidor(id) {
+    const servidor = sysConfig.nomes.find(n => n.id === id);
+    if (!servidor) return;
+
+    if (confirm(`Tem certeza que deseja excluir o servidor "${servidor.nome}"? Esta ação não pode ser desfeita.`)) {
+        sysConfig.nomes = sysConfig.nomes.filter(n => n.id !== id);
+
+        try {
+            const { error } = await supabaseClient.from('configuracoes').update({
+                nomes: sysConfig.nomes
+            }).eq('id', 1);
+            if (error) throw error;
+
+            aplicarFiltrosServidores(); // Reaplica filtros na lista atualizada
+        } catch (err) {
+            console.error("Erro ao excluir servidor:", err);
+            alert("Erro ao excluir no banco de dados.");
+        }
+    }
+}
+
+function renderServidoresCadastrados(listaCustom = null) {
+    const tbody = document.getElementById('table-servidores-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    // Se não foi passada uma lista filtrada customizada, aplicamos os filtros atuais do DOM
+    const lista = listaCustom !== null ? listaCustom : (Array.isArray(sysConfig.nomes) ? sysConfig.nomes : []);
+
+    if (!Array.isArray(lista) || lista.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-500 text-sm italic">Nenhum servidor encontrado.</td></tr>';
+        return;
+    }
+
+    lista.forEach(n => {
+        const funcaoStr = n.is_coroinha ? 'Coroinha' : (n.is_cerimoniario ? 'Cerimoniário' : 'Outro');
+        const badgeColor = n.is_coroinha ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
+
+        const tagsHtml = (n.tags && n.tags.length > 0)
+            ? n.tags.map(t => `<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs border border-slate-200 font-medium">${t}</span>`).join('')
+            : '<span class="text-xs text-gray-400">-</span>';
+
+        const diasStr = (n.dias_indisponiveis && n.dias_indisponiveis.length > 0)
+            ? `<span class="text-xs text-red-500 font-medium">Não pode: ${n.dias_indisponiveis.join(', ')}</span>`
+            : `<span class="text-xs text-green-600 font-medium">Livre todos os dias</span>`;
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-gray-50/80 transition-colors">
+                <td class="p-4">
+                    <div class="font-bold text-slate-800">${n.nome}</div>
+                    <span class="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${badgeColor}">${funcaoStr}</span>
+                </td>
+                <td class="p-4 text-sm text-slate-600">${n.idade ? n.idade + ' anos' : '-'}</td>
+                <td class="p-4"><div class="flex flex-wrap gap-1">${tagsHtml}</div></td>
+                <td class="p-4">${diasStr}</td>
+                <td class="p-4 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                        <button onclick="editarServidor('${n.id}')" class="p-1.5 text-blue-600 hover:bg-blue-100 rounded-md transition-colors" title="Editar">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </button>
+                        <button onclick="excluirServidor('${n.id}')" class="p-1.5 text-red-600 hover:bg-red-100 rounded-md transition-colors" title="Excluir">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function aplicarFiltrosServidores() {
+    if (!Array.isArray(sysConfig.nomes)) {
+        renderServidoresCadastrados([]);
+        return;
+    }
+
+    const nomeTerm = (document.getElementById('filtro-servidor-nome')?.value || '').toLowerCase().trim();
+    const funcaoVal = document.getElementById('filtro-servidor-funcao')?.value || '';
+    const tagTerm = (document.getElementById('filtro-servidor-tag')?.value || '').toLowerCase().trim();
+    const idadeVal = document.getElementById('filtro-servidor-idade')?.value || '';
+    const indisponibilidadeVal = document.getElementById('filtro-servidor-indisponibilidade')?.value || '';
+
+    const filtrados = sysConfig.nomes.filter(n => {
+        if (!n) return false;
+
+        // Filtro por Nome
+        if (nomeTerm && (!n.nome || !n.nome.toLowerCase().includes(nomeTerm))) {
+            return false;
+        }
+
+        // Filtro por Função (Coroinha / Cerimoniário)
+        if (funcaoVal === 'coroinha' && !n.is_coroinha) return false;
+        if (funcaoVal === 'cerimoniario' && !n.is_cerimoniario) return false;
+
+        // Filtro por Tag / Especialidade
+        if (tagTerm) {
+            const hasTagMatch = Array.isArray(n.tags) && n.tags.some(t => t.toLowerCase().includes(tagTerm));
+            if (!hasTagMatch) return false;
+        }
+
+        // Filtro por Faixa de Idade
+        if (idadeVal) {
+            const idade = n.idade ? parseInt(n.idade) : null;
+            if (idade === null) return false;
+            if (idadeVal === '0-12' && idade > 12) return false;
+            if (idadeVal === '13-17' && (idade < 13 || idade > 17)) return false;
+            if (idadeVal === '18+' && idade < 18) return false;
+        }
+
+        // Filtro por Indisponibilidade
+        if (indisponibilidadeVal) {
+            const dias = Array.isArray(n.dias_indisponiveis) ? n.dias_indisponiveis : [];
+            if (indisponibilidadeVal === 'livre' && dias.length > 0) return false;
+            if (indisponibilidadeVal === 'indisponivel' && dias.length === 0) return false;
+            if (indisponibilidadeVal !== 'livre' && indisponibilidadeVal !== 'indisponivel') {
+                if (!dias.includes(indisponibilidadeVal)) return false;
+            }
+        }
+
+        return true;
+    });
+
+    renderServidoresCadastrados(filtrados);
+}
+
+function limparFiltrosServidores() {
+    if (document.getElementById('filtro-servidor-nome')) document.getElementById('filtro-servidor-nome').value = '';
+    if (document.getElementById('filtro-servidor-funcao')) document.getElementById('filtro-servidor-funcao').value = '';
+    if (document.getElementById('filtro-servidor-tag')) document.getElementById('filtro-servidor-tag').value = '';
+    if (document.getElementById('filtro-servidor-idade')) document.getElementById('filtro-servidor-idade').value = '';
+    if (document.getElementById('filtro-servidor-indisponibilidade')) document.getElementById('filtro-servidor-indisponibilidade').value = '';
+    aplicarFiltrosServidores();
 }
 
 // --- MODAL CONFIG ---
@@ -307,12 +657,12 @@ let tempCerimoniarios = [];
 function renderNamesConfigList() {
     tempCoroinhas = [];
     tempCerimoniarios = [];
-    
+
     sysConfig.nomes.forEach(n => {
         if (n.is_coroinha) tempCoroinhas.push(n.nome);
         if (n.is_cerimoniario) tempCerimoniarios.push(n.nome);
     });
-    
+
     renderCoroinhasList();
     renderCerimoniariosList();
 }
@@ -356,9 +706,9 @@ function removeCerimoniario(idx) { tempCerimoniarios.splice(idx, 1); renderCerim
 function processNamesFromTextareas() {
     const coroinhasList = tempCoroinhas.map(n => n.trim()).filter(n => n);
     const cerimoniariosList = tempCerimoniarios.map(n => n.trim()).filter(n => n);
-    
+
     const allNames = new Set([...coroinhasList, ...cerimoniariosList]);
-    
+
     sysConfig.nomes = Array.from(allNames).map(name => {
         return {
             nome: name,
@@ -410,9 +760,13 @@ async function saveConfigAndClose() {
 // --- DROPDOWNS E EVENTOS ---
 function closeAllDropdowns() {
     document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+    document.querySelectorAll('.autocomplete-list').forEach(ul => ul.classList.remove('show'));
     const backdrop = document.getElementById('dropdown-backdrop');
     if (backdrop) backdrop.classList.remove('show');
-    document.querySelectorAll('.main-row').forEach(tr => { tr.style.zIndex = ''; tr.style.position = ''; });
+    document.querySelectorAll('tr, .main-row, .sublist-row, .name-cell, .role-item, .dropdown').forEach(el => {
+        el.style.zIndex = '';
+        el.style.position = '';
+    });
 }
 
 function toggleDropdown(btn) {
@@ -420,12 +774,18 @@ function toggleDropdown(btn) {
     const isShowing = menu.classList.contains('show');
     closeAllDropdowns();
     if (!isShowing) {
-        const tr = btn.closest('.main-row');
+        const tr = btn.closest('tr');
         if (tr) {
-            tr.style.zIndex = '999995';
+            tr.style.zIndex = '999999';
             tr.style.position = 'relative';
         }
-        const hasSublist = tr.nextElementSibling && tr.nextElementSibling.classList.contains('sublist-row');
+        const dropdownContainer = btn.closest('.dropdown') || btn.parentElement;
+        if (dropdownContainer) {
+            dropdownContainer.style.zIndex = '999999';
+            dropdownContainer.style.position = 'relative';
+        }
+
+        const hasSublist = tr ? (tr.nextElementSibling && tr.nextElementSibling.classList.contains('sublist-row')) : false;
         menu.innerHTML = getDropdownHTML(hasSublist);
 
         // Reset styles for recalculation
@@ -437,27 +797,28 @@ function toggleDropdown(btn) {
 
         menu.classList.add('show');
 
-        // Logic for smart positioning on PC
-        if (window.innerWidth > 768) {
-            const btnRect = btn.getBoundingClientRect();
-            const spaceAbove = btnRect.top;
-            const spaceBelow = window.innerHeight - btnRect.bottom;
+        // Usar fixed positioning para escapar do container overflow da tabela
+        const btnRect = btn.getBoundingClientRect();
+        menu.style.position = 'fixed';
+        menu.style.zIndex = '999999';
 
-            if (spaceBelow > spaceAbove) {
-                // Abre para baixo
-                menu.style.top = '100%';
-                menu.style.bottom = 'auto';
-                menu.style.marginTop = '5px';
-                menu.style.marginBottom = '0';
-                menu.style.transformOrigin = 'top right';
-            } else {
-                // Abre para cima
-                menu.style.top = 'auto';
-                menu.style.bottom = '100%';
-                menu.style.marginTop = '0';
-                menu.style.marginBottom = '5px';
-                menu.style.transformOrigin = 'bottom right';
-            }
+        const menuWidth = 224; // w-56 is 224px
+        menu.style.left = Math.max(10, btnRect.right - menuWidth) + 'px';
+
+        const menuHeight = menu.offsetHeight || 200;
+        const spaceBelow = window.innerHeight - btnRect.bottom;
+        const spaceAbove = btnRect.top;
+
+        if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+            // Abre para cima
+            menu.style.top = 'auto';
+            menu.style.bottom = (window.innerHeight - btnRect.top + 4) + 'px';
+            menu.style.transformOrigin = 'bottom right';
+        } else {
+            // Abre para baixo
+            menu.style.top = (btnRect.bottom + 4) + 'px';
+            menu.style.bottom = 'auto';
+            menu.style.transformOrigin = 'top right';
         }
 
         let backdrop = document.getElementById('dropdown-backdrop');
@@ -479,9 +840,19 @@ function getDropdownHTML(hasSublist) {
                     ${ev.nome} ${ev.todos_participam ? '(Convocação)' : ''}
                  </button>`;
     });
-    html += `<hr><button class="dropdown-item text-danger" onclick="applyEvent(this, null)">Remover Evento (Normalizar)</button>`;
+
+    html += `<div class="border-t border-slate-100 my-1 pt-1"></div>`;
+    html += `<button class="w-full text-left px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded flex items-center gap-2 transition-colors" onclick="applyEvent(this, null)">↺ Remover Evento (Restaurar Padrão)</button>`;
+
+    html += `<hr><div class="dropdown-header">Opções de Linha:</div>`;
+    html += `<button class="dropdown-item" onclick="abrirModalPintura(this)">🎨 Pintar Células</button>`;
+
     html += `<hr><div class="dropdown-header">Sub-lista de Funções:</div>`;
-    html += `<button class="dropdown-item" onclick="toggleSublist(this)">${hasSublist ? '➖ Ocultar Sub-lista' : '➕ Exibir Sub-lista'}</button>`;
+    html += `<div class="relative ml-2 pl-3 border-l-2 border-slate-200 space-y-1">
+                <button class="w-full text-left text-slate-600 hover:text-blue-700 hover:bg-blue-50/60 rounded px-2 py-1.5 transition-colors text-sm font-medium" onclick="toggleSublist(this)">
+                    ${hasSublist ? '➖ Ocultar Sub-lista' : '➕ Exibir Sub-lista'}
+                </button>
+             </div>`;
     return html;
 }
 
@@ -517,6 +888,13 @@ function removeGeneralDOM(tr, type) {
     else tr.cells[6].innerHTML = tr.cells[6].innerHTML.replace(/<strong class="conv-obs-warn".*?<\/strong>(<br>)?/, '').replace(/<span class="conv-obs-warn".*?<\/span>\s?/, '');
 }
 
+function getEventBadgeHTML(ev) {
+    const corH = ev.cor || '#3b82f6';
+    const bgRgba = hexToRgba(corH, 0.18);
+    const borderRgba = hexToRgba(corH, 0.5);
+    return `<span class="event-badge" contenteditable="false" style="display:inline-flex; align-items:center; margin-bottom:4px; padding:3px 8px; background-color:${bgRgba}; color:#1e293b; font-size:0.75rem; border-radius:9999px; border:1px solid ${borderRgba}; font-weight:700; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${corH}; margin-right:6px; flex-shrink:0;"></span>${ev.nome}</span><br class="event-badge-br no-print" contenteditable="false">`;
+}
+
 function applyEvent(btn, eventId) {
     closeAllDropdowns();
     const tr = btn.closest('.main-row');
@@ -532,6 +910,7 @@ function applyEvent(btn, eventId) {
     }
 
     tr.style.backgroundColor = '';
+    tr.style.borderLeft = '';
     tr.dataset.eventId = '';
 
     const oldBadge = obsCell.querySelector('.event-badge');
@@ -544,12 +923,16 @@ function applyEvent(btn, eventId) {
     if (eventId) {
         const ev = sysConfig.eventos.find(e => e.nome === eventId);
         if (ev) {
+            const corH = ev.cor || '#3b82f6';
             if (ev.pintar_linha !== false) {
-                tr.style.backgroundColor = hexToRgba(ev.cor, 0.15);
+                // Apply subtle row background and thick left border
+                tr.style.backgroundColor = hexToRgba(corH, 0.12);
+                tr.style.borderLeft = `4px solid ${corH}`;
             }
             tr.dataset.eventId = ev.nome;
 
-            const badgeHtml = `<span class="event-badge" contenteditable="false" style="display:inline-block; margin-bottom:4px; padding:3px 6px; background:${ev.cor}; color:#111; font-size:0.75rem; border-radius:4px; border:1px solid rgba(0,0,0,0.1); font-weight:bold; box-shadow: inset 0 0 0 1000px ${ev.cor}; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${ev.nome}</span><br class="event-badge-br no-print" contenteditable="false">`;
+            // Pill/Badge styling with color dot and valid RGBA background
+            const badgeHtml = getEventBadgeHTML(ev);
             obsCell.insertAdjacentHTML('afterbegin', badgeHtml);
 
             if (ev.todos_participam) {
@@ -598,25 +981,25 @@ function createSublist(mainRow, type, existingData = null) {
     subTr.className = 'sublist-row';
 
     let html = `<td colspan="${colsCount}">
-        <div class="sublist-container">
-            <div class="sublist-header-flex">
-                <div class="sublist-title">Missa - Definição de Funções</div>
-                <button class="btn-sublist-toggle no-print" onclick="toggleSublistFullscreen(this)">📱 Tela Cheia</button>
+        <div class="sublist-container w-full bg-slate-50 border border-slate-200 rounded-lg p-4 mt-3 mb-4 shadow-inner">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-2 mb-3">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Missa - Definição de Funções</span>
+                <button class="flex items-center gap-1 text-xs text-slate-600 hover:text-blue-600 no-print" onclick="toggleSublistFullscreen(this)">📱 Tela Cheia</button>
             </div>
-            <div class="sublist-roles">`;
+            <div class="sublist-roles grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">`;
 
     const defaultRoles = type === 'coroinhas' ? ['Coroinha 1', 'Coroinha 2'] : ['Cruciferário', 'Cerimonialista'];
     let rolesData = existingData || defaultRoles.map(r => ({ name: r, val: '' }));
 
     rolesData.forEach(r => {
         const valSafe = r.val.replace(/"/g, '&quot;');
-        html += `<div class="role-item" style="position:relative;">
-                    <select class="role-select" onchange="saveData()">${getRoleSelectOptionsHTML(r.name)}</select> 
-                    <input type="text" class="colorable name-input role-val" value="${valSafe}" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)">
-                    <button class="btn-remove-role no-print" onclick="removeRole(this)">&times;</button>
+        html += `<div class="role-item relative flex items-center gap-2 bg-white border border-slate-200 p-2 rounded-md shadow-sm">
+                    <select class="role-select text-xs font-semibold text-slate-700 whitespace-nowrap bg-transparent border-0 p-0 focus:ring-0 cursor-pointer" onchange="saveData()">${getRoleSelectOptionsHTML(r.name)}</select> 
+                    <input type="text" class="colorable name-input role-val text-xs border border-slate-300 rounded px-2 py-1.5 w-full focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" value="${valSafe}" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)" placeholder="Nome">
+                    <button class="text-slate-400 hover:text-rose-500 font-bold px-1 cursor-pointer no-print" onclick="removeRole(this)">&times;</button>
                  </div>`;
     });
-    html += `</div><button class="btn btn-small btn-add-role no-print" onclick="addDynamicRole(this)">+ Adicionar Função</button></div></td>`;
+    html += `</div><button class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-100 px-3 py-1.5 rounded-md mt-4 transition-colors cursor-pointer no-print" onclick="addDynamicRole(this)">+ Adicionar Função</button></div></td>`;
 
     subTr.innerHTML = html;
     mainRow.parentNode.insertBefore(subTr, mainRow.nextSibling);
@@ -631,11 +1014,10 @@ function toggleSublistFullscreen(btn) {
 
 function addDynamicRole(btn) {
     const div = document.createElement('div');
-    div.className = 'role-item';
-    div.style.position = 'relative';
-    div.innerHTML = `<select class="role-select" onchange="saveData()">${getRoleSelectOptionsHTML(sysConfig.funcoes_extras[0] || 'Função')}</select> 
-                     <input type="text" class="colorable name-input role-val" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)">
-                     <button class="btn-remove-role no-print" onclick="removeRole(this)">&times;</button>`;
+    div.className = 'role-item relative flex items-center gap-2 bg-white border border-slate-200 p-2 rounded-md shadow-sm';
+    div.innerHTML = `<select class="role-select text-xs font-semibold text-slate-700 whitespace-nowrap bg-transparent border-0 p-0 focus:ring-0 cursor-pointer" onchange="saveData()">${getRoleSelectOptionsHTML(sysConfig.funcoes_extras[0] || 'Função')}</select> 
+                     <input type="text" class="colorable name-input role-val text-xs border border-slate-300 rounded px-2 py-1.5 w-full focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)" placeholder="Nome">
+                     <button class="text-slate-400 hover:text-rose-500 font-bold px-1 cursor-pointer no-print" onclick="removeRole(this)">&times;</button>`;
     btn.previousElementSibling.appendChild(div);
     saveData();
 }
@@ -686,23 +1068,44 @@ function addRow(tableId, data = null) {
 
         if (data.eventId) {
             newRow.dataset.eventId = data.eventId;
-            newRow.style.backgroundColor = data.rowColor;
             newRow.dataset.wasGeneral = data.wasGeneral ? 'true' : 'false';
 
             const ev = sysConfig.eventos.find(e => e.nome === data.eventId);
-            if (ev && obsCell && !obsCell.querySelector('.event-badge')) {
-                const rgbaColor = hexToRgba(ev.cor, 0.6);
-                const badgeHtml = `<span class="event-badge" contenteditable="false" style="display:inline-block; margin-bottom:4px; padding:3px 6px; background:${rgbaColor}; color:#111; font-size:0.75rem; border-radius:4px; border:1px solid rgba(0,0,0,0.1); font-weight:bold; box-shadow: inset 0 0 0 1000px ${rgbaColor}; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${ev.nome}</span><br class="event-badge-br no-print" contenteditable="false">`;
-                obsCell.insertAdjacentHTML('afterbegin', badgeHtml);
+            if (ev) {
+                const corH = ev.cor || '#3b82f6';
+                if (ev.pintar_linha !== false) {
+                    newRow.style.backgroundColor = hexToRgba(corH, 0.12);
+                    newRow.style.borderLeft = `4px solid ${corH}`;
+                }
+                if (obsCell && !obsCell.querySelector('.event-badge')) {
+                    const badgeHtml = getEventBadgeHTML(ev);
+                    obsCell.insertAdjacentHTML('afterbegin', badgeHtml);
+                }
+            } else if (data.rowColor) {
+                newRow.style.backgroundColor = data.rowColor;
             }
             if (data.wasGeneral) applyGeneralDOM(newRow, type);
+        }
+
+        if (data.coresCelulas) {
+            newRow.dataset.coresCelulas = JSON.stringify(data.coresCelulas);
+            // Vai aguardar ser injetado no DOM, a função aplicarCoresCelulas será chamada no final.
         }
     }
 
     tbodyBloco.appendChild(newRow);
     table.appendChild(tbodyBloco);
     if (data && data.sublist) createSublist(newRow, type, data.sublist);
+
+    if (data && data.coresCelulas) {
+        aplicarCoresCelulas(newRow, data.coresCelulas);
+    }
+
     saveData();
+
+    if (!data) {
+        destacarLinha(newRow.id);
+    }
 }
 
 async function removeRow(btn) {
@@ -855,7 +1258,7 @@ async function syncToSupabase() {
     const mes = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
     const ano = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
     const mesAno = `${mes} ${ano}`;
-    
+
     // Atualiza automaticamente o cabeçalho nas configurações
     try {
         await supabaseClient.from('configuracoes').update({
@@ -958,16 +1361,30 @@ async function syncToSupabase() {
     if (saveBtn) saveBtn.classList.remove('is-saving');
 }
 
-async function loadDataFromSupabase() {
+async function carregarConfiguracoes() {
     try {
-        // Busca Configurações
         const { data: configData, error: configError } = await supabaseClient.from('configuracoes').select('*').eq('id', 1).single();
         if (!configError && configData) {
             if (Array.isArray(configData.eventos)) sysConfig.eventos = configData.eventos;
             if (Array.isArray(configData.locais)) sysConfig.locais = configData.locais;
-            if (Array.isArray(configData.nomes)) sysConfig.nomes = configData.nomes;
             if (Array.isArray(configData.funcoes_extras)) sysConfig.funcoes_extras = configData.funcoes_extras;
-            
+
+            if (Array.isArray(configData.nomes)) {
+                sysConfig.nomes = configData.nomes.map(n => {
+                    if (typeof n === 'string') {
+                        return { id: generateUUID(), nome: n, is_coroinha: true, is_cerimoniario: false, idade: null, tags: [], dias_indisponiveis: [] };
+                    }
+                    if (!n.id) n.id = generateUUID();
+                    if (!n.dias_indisponiveis) n.dias_indisponiveis = [];
+                    if (!n.tags) n.tags = [];
+                    return n;
+                });
+            }
+            renderServidoresCadastrados();
+            renderConfigEventos();
+            renderConfigLocais();
+            renderConfigFuncoes();
+
             const mesEl = document.getElementById('select-mes');
             const anoEl = document.getElementById('select-ano');
             if (mesEl && configData.mes_cabecalho) mesEl.value = configData.mes_cabecalho;
@@ -975,8 +1392,18 @@ async function loadDataFromSupabase() {
             updateTituloEscala();
         } else if (configError && configError.code === 'PGRST116') {
             await supabaseClient.from('configuracoes').insert([{ id: 1, ...sysConfig }]);
+            renderServidoresCadastrados();
+            renderConfigEventos();
+            renderConfigLocais();
+            renderConfigFuncoes();
         }
+    } catch (err) {
+        console.error("Erro ao carregar configurações:", err);
+    }
+}
 
+async function carregarEscalas() {
+    try {
         const { data: escalas, error } = await supabaseClient.from('escalas').select('*').order('data', { ascending: true });
         if (error) throw error;
 
@@ -994,6 +1421,7 @@ async function loadDataFromSupabase() {
                 if (row.horario) rowData.timeVal = row.horario;
                 if (row.local) rowData.localVal = row.local;
                 if (row.observacao) rowData.obsHtml = row.observacao;
+                if (row.cores_celulas) rowData.coresCelulas = row.cores_celulas;
                 if (rowData.mesAno && !latestMesAno) latestMesAno = rowData.mesAno;
 
                 if (row.coroinhas) {
@@ -1025,8 +1453,8 @@ async function loadDataFromSupabase() {
         highlightNextMass();
         ordenarTodasTabelas();
     } catch (err) {
-        console.error(err);
-        alert("Erro ao carregar dados do Supabase. A tabela estará vazia.");
+        console.error("Erro ao carregar escalas:", err);
+        alert("Erro ao carregar escalas: " + err.message);
     }
 }
 
@@ -1163,40 +1591,273 @@ function exportPDF() {
     document.title = originalTitle;
 }
 
-// --- SISTEMA DE BACKUP ---
-function exportData() {
-    const data = {
-        configuracoes: sysConfig,
-        coroinhas: getTableData('table-coroinhas'),
-        cerimoniarios: getTableData('table-cerimoniarios')
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'backup_escala_supabase.json';
-    link.click();
+// --- ZONA DE CONFIGURAÇÕES (GRID) ---
+
+let editingEventoIndex = -1;
+
+function renderConfigEventos() {
+    const list = document.getElementById('lista-eventos');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (!sysConfig.eventos || sysConfig.eventos.length === 0) {
+        list.innerHTML = '<li class="p-4 text-slate-500 text-center italic">Nenhum evento cadastrado.</li>';
+        return;
+    }
+
+    sysConfig.eventos.forEach((ev, index) => {
+        const li = document.createElement('li');
+        li.className = 'flex items-center justify-between p-3 hover:bg-slate-50 transition-colors';
+
+        let badges = '';
+        if (ev.todos_participam) badges += `<span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-bold uppercase tracking-wider">Geral</span>`;
+        if (ev.pintar_linha !== false) badges += `<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-bold uppercase tracking-wider">Pintar</span>`;
+
+        li.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-6 h-6 rounded shadow-inner border border-gray-200" style="background-color: ${ev.cor || '#ccc'}"></div>
+                <div>
+                    <p class="font-bold text-slate-700 leading-tight">${ev.nome}</p>
+                    <div class="flex gap-1 mt-1">${badges}</div>
+                </div>
+            </div>
+            <div class="flex gap-1">
+                <button onclick="iniciarEdicaoEvento(${index})" class="text-slate-400 hover:text-blue-500 p-1.5 hover:bg-blue-50 rounded transition-colors" title="Editar">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                </button>
+                <button onclick="removerEvento(${index})" class="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded transition-colors" title="Remover">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </div>
+        `;
+        list.appendChild(li);
+    });
 }
 
-async function importData(event) {
+function renderConfigLocais() {
+    const container = document.getElementById('lista-locais');
+    if (!container) return;
+    container.innerHTML = '';
+
+    sysConfig.locais.forEach((local, index) => {
+        const div = document.createElement('div');
+        div.className = 'bg-white text-slate-700 border border-gray-200 rounded-full pl-3 pr-1 py-1 text-sm font-medium flex items-center gap-2 shadow-sm';
+        div.innerHTML = `
+            ${local}
+            <button onclick="removerLocal(${index})" class="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 p-1 rounded-full transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function renderConfigFuncoes() {
+    const container = document.getElementById('lista-funcoes');
+    if (!container) return;
+    container.innerHTML = '';
+
+    sysConfig.funcoes_extras.forEach((func, index) => {
+        const div = document.createElement('div');
+        div.className = 'bg-white text-slate-700 border border-gray-200 rounded-full pl-3 pr-1 py-1 text-sm font-medium flex items-center gap-2 shadow-sm';
+        div.innerHTML = `
+            ${func}
+            <button onclick="removerFuncao(${index})" class="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 p-1 rounded-full transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+async function salvarConfiguracaoNoBanco() {
+    try {
+        const { error } = await supabaseClient.from('configuracoes').update({
+            eventos: sysConfig.eventos,
+            locais: sysConfig.locais,
+            funcoes_extras: sysConfig.funcoes_extras
+        }).eq('id', 1);
+
+        if (error) throw error;
+    } catch (err) {
+        console.error("Erro ao salvar config no banco:", err);
+        alert("Erro ao salvar a configuração na nuvem. Verifique sua conexão.");
+    }
+}
+
+function iniciarEdicaoEvento(index) {
+    editingEventoIndex = index;
+    const ev = sysConfig.eventos[index];
+
+    document.getElementById('novo-evento-nome').value = ev.nome;
+    document.getElementById('novo-evento-cor').value = ev.cor || '#FFEBEE';
+    document.getElementById('novo-evento-geral').checked = !!ev.todos_participam;
+    document.getElementById('novo-evento-pintar').checked = ev.pintar_linha !== false;
+
+    document.getElementById('btn-salvar-evento').innerHTML = '✓ Salvar Edição';
+    document.getElementById('btn-cancelar-edicao-evento').classList.remove('hidden');
+}
+
+function cancelarEdicaoEvento() {
+    editingEventoIndex = -1;
+    document.getElementById('novo-evento-nome').value = '';
+    document.getElementById('novo-evento-cor').value = '#FFEBEE';
+    document.getElementById('novo-evento-geral').checked = false;
+    document.getElementById('novo-evento-pintar').checked = true;
+
+    document.getElementById('btn-salvar-evento').innerHTML = '+ Adicionar';
+    document.getElementById('btn-cancelar-edicao-evento').classList.add('hidden');
+}
+
+async function salvarFormEvento() {
+    const nome = document.getElementById('novo-evento-nome').value.trim();
+    const cor = document.getElementById('novo-evento-cor').value;
+    const geral = document.getElementById('novo-evento-geral').checked;
+    const pintar = document.getElementById('novo-evento-pintar').checked;
+
+    if (!nome) { alert('Digite o nome do evento.'); return; }
+
+    if (editingEventoIndex !== -1) {
+        // Edit mode
+        sysConfig.eventos[editingEventoIndex] = { nome, cor, todos_participam: geral, pintar_linha: pintar };
+        cancelarEdicaoEvento();
+    } else {
+        // Add mode
+        sysConfig.eventos.push({ nome, cor, todos_participam: geral, pintar_linha: pintar });
+        document.getElementById('novo-evento-nome').value = '';
+    }
+
+    renderConfigEventos();
+    await salvarConfiguracaoNoBanco();
+}
+
+async function removerEvento(index) {
+    if (confirm('Remover este evento?')) {
+        sysConfig.eventos.splice(index, 1);
+        renderConfigEventos();
+        await salvarConfiguracaoNoBanco();
+    }
+}
+
+async function adicionarLocal() {
+    const nome = document.getElementById('novo-local-nome').value.trim();
+    if (!nome) { alert('Digite o nome do local.'); return; }
+
+    sysConfig.locais.push(nome);
+    document.getElementById('novo-local-nome').value = '';
+
+    renderConfigLocais();
+    await salvarConfiguracaoNoBanco();
+}
+
+async function removerLocal(index) {
+    if (confirm('Remover este local?')) {
+        sysConfig.locais.splice(index, 1);
+        renderConfigLocais();
+        await salvarConfiguracaoNoBanco();
+    }
+}
+
+async function adicionarFuncao() {
+    const nome = document.getElementById('nova-funcao-nome').value.trim();
+    if (!nome) { alert('Digite o nome da função.'); return; }
+
+    sysConfig.funcoes_extras.push(nome);
+    document.getElementById('nova-funcao-nome').value = '';
+
+    renderConfigFuncoes();
+    await salvarConfiguracaoNoBanco();
+}
+
+async function removerFuncao(index) {
+    if (confirm('Remover esta função?')) {
+        sysConfig.funcoes_extras.splice(index, 1);
+        renderConfigFuncoes();
+        await salvarConfiguracaoNoBanco();
+    }
+}
+
+// --- SISTEMA DE BACKUP ROBUSTO (JSON) ---
+async function exportarBackupJSON() {
+    try {
+        const { data: escalasData, error: escalasError } = await supabaseClient.from('escalas').select('*');
+        if (escalasError) throw escalasError;
+
+        const { data: configData, error: configError } = await supabaseClient.from('configuracoes').select('*').eq('id', 1).single();
+        if (configError) throw configError;
+
+        const backupData = {
+            escalas: escalasData,
+            configuracoes: configData
+        };
+
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `backup_completo_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+    } catch (err) {
+        console.error("Erro ao exportar:", err);
+        alert("Erro ao exportar: " + err.message);
+    }
+}
+
+async function restaurarBackupJSON(event) {
     const file = event.target.files[0];
     if (!file) return;
+
+    if (!confirm('Atenção: A restauração irá sobrescrever escalas e configurações (incluindo servidores) existentes. Deseja prosseguir?')) {
+        event.target.value = ''; // reseta input
+        return;
+    }
+
     const reader = new FileReader();
     reader.onload = async function (e) {
         try {
-            const data = JSON.parse(e.target.result);
-            if (data.configuracoes) {
-                await supabaseClient.from('configuracoes').update({
-                    eventos: data.configuracoes.eventos,
-                    locais: data.configuracoes.locais,
-                    nomes: data.configuracoes.nomes,
-                    funcoes_extras: data.configuracoes.funcoes_extras
-                }).eq('id', 1);
+            const jsonData = JSON.parse(e.target.result);
+
+            // Verifica estrutura do JSON antigo (array de escalas) ou novo (objeto com escalas e configuracoes)
+            let escalasParaImportar = [];
+            let configuracoesParaImportar = null;
+
+            if (Array.isArray(jsonData)) {
+                escalasParaImportar = jsonData;
+            } else if (jsonData && jsonData.escalas) {
+                escalasParaImportar = jsonData.escalas;
+                configuracoesParaImportar = jsonData.configuracoes;
+            } else {
+                throw new Error("O arquivo JSON não está num formato válido.");
             }
-            alert('Backup importado para a nuvem com sucesso! A página será recarregada.');
+
+            // 1. Restaura Configurações
+            if (configuracoesParaImportar) {
+                const { error: configError } = await supabaseClient.from('configuracoes').update({
+                    eventos: configuracoesParaImportar.eventos,
+                    locais: configuracoesParaImportar.locais,
+                    funcoes_extras: configuracoesParaImportar.funcoes_extras,
+                    nomes: configuracoesParaImportar.nomes
+                }).eq('id', 1);
+
+                if (configError) throw configError;
+            }
+
+            // 2. Restaura Escalas
+            if (Array.isArray(escalasParaImportar) && escalasParaImportar.length > 0) {
+                const uniqueMap = new Map();
+                escalasParaImportar.forEach(item => uniqueMap.set(item.id, item));
+                const uniqueRows = Array.from(uniqueMap.values());
+
+                const { error: escalasError } = await supabaseClient.from('escalas').upsert(uniqueRows);
+                if (escalasError) throw escalasError;
+            }
+
+            alert('Backup restaurado com sucesso! A página será recarregada.');
             location.reload();
         } catch (err) {
-            alert('Erro ao importar: O arquivo JSON é inválido ou ocorreu um erro de conexão.');
+            console.error("Erro na restauração:", err);
+            alert('Erro ao restaurar: ' + err.message);
         }
+        event.target.value = ''; // reseta input
     };
     reader.readAsText(file);
 }
@@ -1210,6 +1871,9 @@ function applyWeekSeparator() {
 
         const blocos = Array.from(table.querySelectorAll('tbody.bloco-missa'));
         let lastDate = null;
+        let currentWeekCount = 1;
+
+        const formatDM = (d) => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
 
         blocos.forEach(bloco => {
             const dateInput = bloco.querySelector('.date-input');
@@ -1217,19 +1881,211 @@ function applyWeekSeparator() {
                 const parts = dateInput.value.split('-');
                 const currentDate = new Date(parts[0], parts[1] - 1, parts[2]);
 
-                if (lastDate) {
+                let isNewWeek = false;
+
+                if (!lastDate) {
+                    isNewWeek = true;
+                } else {
                     const diffTime = Math.abs(currentDate - lastDate);
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    // Quebra de semana se pular para Domingo (getDay === 0 e dia anterior != 0), ou mais de 6 dias de diferença
                     if ((currentDate.getDay() === 0 && lastDate.getDay() !== 0) || diffDays > 6 || (currentDate.getDay() < lastDate.getDay() && diffDays > 0)) {
-                        const spacerTbody = document.createElement('tbody');
-                        spacerTbody.className = 'linha-separadora-semana';
-                        spacerTbody.innerHTML = '<tr><td colspan="100%"></td></tr>';
-                        table.insertBefore(spacerTbody, bloco);
+                        isNewWeek = true;
+                        currentWeekCount++;
                     }
+                }
+
+                if (isNewWeek) {
+                    const sunday = new Date(currentDate);
+                    sunday.setDate(currentDate.getDate() - currentDate.getDay());
+                    const saturday = new Date(sunday);
+                    saturday.setDate(sunday.getDate() + 6);
+
+                    const spacerTbody = document.createElement('tbody');
+                    spacerTbody.className = 'linha-separadora-semana';
+                    spacerTbody.innerHTML = `<tr class="bg-slate-100/80 border-y border-slate-200"><td colspan="100%" class="py-2.5 px-4 text-xs font-bold uppercase tracking-wider text-slate-600"><div class="flex items-center gap-2">📅 Semana ${currentWeekCount} • ${formatDM(sunday)} a ${formatDM(saturday)}</div></td></tr>`;
+                    table.insertBefore(spacerTbody, bloco);
                 }
                 lastDate = currentDate;
             }
         });
     });
+}
+
+// --- SPA NAVIGATION E MODAIS ---
+function switchView(viewId) {
+    // Esconder todas as seções
+    const sections = ['section-escalas', 'section-servidores', 'section-configuracoes'];
+    sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.add('hidden');
+            el.classList.remove('block');
+        }
+    });
+
+    // Mostrar a seção alvo
+    const target = document.getElementById(`section-${viewId}`);
+    if (target) {
+        target.classList.remove('hidden');
+        target.classList.add('block');
+    }
+
+    // Atualizar visual dos botões da sidebar
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        const btnView = btn.getAttribute('data-view');
+        if (btnView === viewId) {
+            // Estado ativo
+            btn.classList.remove('text-slate-700', 'hover:bg-slate-100', 'bg-blue-900');
+            btn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+        } else {
+            // Estado inativo
+            btn.classList.add('text-slate-700', 'hover:bg-slate-100');
+            btn.classList.remove('bg-blue-600', 'bg-blue-900', 'text-white', 'shadow-md');
+        }
+    });
+}
+
+function abrirModalServidor() {
+    editingServidorId = null;
+    document.getElementById('modal-servidor-titulo').innerText = 'Cadastrar Novo Servidor';
+    document.getElementById('btn-salvar-servidor-text').innerText = 'Salvar';
+
+    const modal = document.getElementById('modal-novo-servidor');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function fecharModalServidor() {
+    editingServidorId = null;
+    const modal = document.getElementById('modal-novo-servidor');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.getElementById('novo-servidor-nome').value = '';
+        document.getElementById('novo-servidor-idade').value = '';
+        document.getElementById('novo-servidor-tags').value = '';
+        document.querySelectorAll('.cb-dia-indisponivel').forEach(cb => cb.checked = false);
+    }
+}
+
+// --- MODO PINTURA DE CÉLULAS ---
+let currentPinturaRowId = null;
+let currentCoresCelulas = {};
+let corSelecionadaPincel = null;
+
+function selecionarCorPincel(cor, btn) {
+    corSelecionadaPincel = cor;
+    document.querySelectorAll('.cor-pincel-btn, #cor-livre').forEach(el => {
+        el.classList.remove('border-blue-500', 'border-slate-400');
+        el.classList.add('border-transparent');
+    });
+    if (btn) {
+        btn.classList.remove('border-transparent');
+        btn.classList.add('border-blue-500');
+    }
+}
+
+function abrirModalPintura(btn) {
+    closeAllDropdowns();
+    const tr = btn.closest('.main-row');
+    if (!tr) return;
+    currentPinturaRowId = tr.id;
+
+    try {
+        currentCoresCelulas = JSON.parse(tr.dataset.coresCelulas || '{}');
+    } catch (e) {
+        currentCoresCelulas = {};
+    }
+
+    renderGridPintura(tr);
+    const modal = document.getElementById('modal-pintura');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function fecharModalPintura() {
+    const modal = document.getElementById('modal-pintura');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    currentPinturaRowId = null;
+    currentCoresCelulas = {};
+    corSelecionadaPincel = null;
+    document.querySelectorAll('.cor-pincel-btn, #cor-livre').forEach(el => {
+        el.classList.remove('border-blue-500', 'border-slate-400');
+        el.classList.add('border-transparent');
+    });
+}
+
+function renderGridPintura(tr) {
+    const grid = document.getElementById('grid-pintura');
+    grid.innerHTML = '';
+
+    const type = tr.closest('table').id.includes('coroinhas') ? 'Coroinha' : 'Cerimoniário';
+    const colunas = [
+        { id: 'data', label: 'Data', index: 0 },
+        { id: 'dia', label: 'Dia da Semana', index: 1 },
+        { id: 'horario', label: 'Horário', index: 2 },
+        { id: 'local', label: 'Local', index: 3 },
+        { id: 'nome1', label: `${type} 1`, index: 4 },
+        { id: 'nome2', label: `${type} 2`, index: 5 },
+        { id: 'observacao', label: 'Observações', index: 6 },
+    ];
+
+    colunas.forEach(col => {
+        const cor = currentCoresCelulas[col.id] || 'transparent';
+        const btn = document.createElement('button');
+        btn.className = 'p-4 border border-gray-200 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors hover:border-blue-500 shadow-sm';
+        btn.style.backgroundColor = cor === 'transparent' ? '#f8fafc' : cor;
+        btn.innerHTML = `<span class="text-xs font-bold text-slate-700 bg-white/70 px-2 py-1 rounded backdrop-blur-sm">${col.label}</span>`;
+        btn.onclick = () => {
+            if (corSelecionadaPincel === null) return;
+
+            if (corSelecionadaPincel === 'transparent') {
+                delete currentCoresCelulas[col.id];
+                btn.style.backgroundColor = '#f8fafc';
+            } else {
+                currentCoresCelulas[col.id] = corSelecionadaPincel;
+                btn.style.backgroundColor = corSelecionadaPincel;
+            }
+        };
+        grid.appendChild(btn);
+    });
+}
+
+async function salvarPintura() {
+    if (!currentPinturaRowId) return;
+
+    const tr = document.getElementById(currentPinturaRowId);
+    if (tr) {
+        tr.dataset.coresCelulas = JSON.stringify(currentCoresCelulas);
+        aplicarCoresCelulas(tr, currentCoresCelulas);
+        saveData();
+    }
+
+    try {
+        if (!currentPinturaRowId.startsWith('row_')) {
+            await supabaseClient.from('escalas').update({ cores_celulas: currentCoresCelulas }).eq('id', currentPinturaRowId);
+        }
+        fecharModalPintura();
+    } catch (err) {
+        console.error("Erro ao salvar pintura:", err);
+        alert("Erro ao salvar no banco de dados.");
+    }
+}
+
+function aplicarCoresCelulas(tr, coresObj) {
+    const colunasMap = {
+        'data': 0,
+        'dia': 1,
+        'horario': 2,
+        'local': 3,
+        'nome1': 4,
+        'nome2': 5,
+        'observacao': 6
+    };
+
+    for (const [key, idx] of Object.entries(colunasMap)) {
+        if (tr.cells[idx]) {
+            tr.cells[idx].style.backgroundColor = coresObj[key] || 'transparent';
+            tr.cells[idx].style.transition = 'background-color 0.3s ease';
+        }
+    }
 }
