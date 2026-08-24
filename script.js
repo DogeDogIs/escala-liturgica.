@@ -219,18 +219,21 @@ function calculateDayOfWeek(inputElement) {
     if (rowId) destacarLinha(rowId);
 }
 
-function destacarLinha(rowId) {
+function destacarLinha(rowId, shouldScroll = true) {
     setTimeout(() => {
-        const row = document.getElementById(rowId);
-        if (row) {
-            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const rows = document.querySelectorAll(`[id="${rowId}"]`);
+        rows.forEach(row => {
+            if (row.closest('.tab-content.active') && shouldScroll) {
+                row.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+            }
             row.classList.add('linha-destaque');
             setTimeout(() => {
                 row.classList.remove('linha-destaque');
             }, 3000);
-        }
+        });
     }, 100); // Dá tempo do DOM renderizar a nova ordem
 }
+
 
 function openTab(evt, tabId) {
     const tabContents = document.getElementsByClassName('tab-content');
@@ -1104,7 +1107,7 @@ function addRow(tableId, data = null) {
     saveData();
 
     if (!data) {
-        destacarLinha(newRow.id);
+        destacarLinha(newRow.id, false);
     }
 }
 
@@ -1404,7 +1407,21 @@ async function carregarConfiguracoes() {
 
 async function carregarEscalas() {
     try {
-        const { data: escalas, error } = await supabaseClient.from('escalas').select('*').order('data', { ascending: true });
+        const mesVal = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
+        const anoVal = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
+        const meses = { "Janeiro": "01", "Fevereiro": "02", "Março": "03", "Abril": "04", "Maio": "05", "Junho": "06", "Julho": "07", "Agosto": "08", "Setembro": "09", "Outubro": "10", "Novembro": "11", "Dezembro": "12" };
+        const mesNum = meses[mesVal] || "01";
+        const anoNum = anoVal || new Date().getFullYear();
+        
+        const dataInicio = `${anoNum}-${mesNum}-01`;
+        const lastDay = new Date(anoNum, parseInt(mesNum), 0).getDate();
+        const dataFim = `${anoNum}-${mesNum}-${lastDay.toString().padStart(2, '0')}`;
+
+        const { data: escalas, error } = await supabaseClient.from('escalas')
+            .select('*')
+            .gte('data', dataInicio)
+            .lte('data', dataFim)
+            .order('data', { ascending: true });
         if (error) throw error;
 
         document.querySelectorAll('#table-coroinhas tbody.bloco-missa').forEach(tb => tb.remove());
@@ -2087,5 +2104,199 @@ function aplicarCoresCelulas(tr, coresObj) {
             tr.cells[idx].style.backgroundColor = coresObj[key] || 'transparent';
             tr.cells[idx].style.transition = 'background-color 0.3s ease';
         }
+}
+}
+
+// --- GERAR MÊS (EM LOTE) ---
+function abrirModalGerarMes() {
+    document.getElementById('gerar-mes-select').value = document.getElementById('select-mes').value;
+    document.getElementById('gerar-ano-select').value = document.getElementById('select-ano').value;
+    document.getElementById('gerar-trava-input').value = '';
+    document.getElementById('btn-confirmar-gerar').disabled = true;
+    document.getElementById('btn-confirmar-gerar').className = "px-4 py-2 bg-slate-300 text-white rounded-lg text-sm font-bold shadow-sm cursor-not-allowed transition-colors";
+    
+    document.getElementById('modal-gerar-mes').classList.remove('hidden');
+}
+
+function fecharModalGerarMes() {
+    document.getElementById('modal-gerar-mes').classList.add('hidden');
+}
+
+function validarTravaGerar() {
+    const input = document.getElementById('gerar-trava-input');
+    const btn = document.getElementById('btn-confirmar-gerar');
+    if (input.value === 'GERAR') {
+        btn.disabled = false;
+        btn.className = "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-sm cursor-pointer transition-colors";
+    } else {
+        btn.disabled = true;
+        btn.className = "px-4 py-2 bg-slate-300 text-white rounded-lg text-sm font-bold shadow-sm cursor-not-allowed transition-colors";
+    }
+}
+
+async function confirmarGeracaoMes() {
+    const mesDestino = document.getElementById('gerar-mes-select').value;
+    const anoDestino = document.getElementById('gerar-ano-select').value;
+    const copiarPadrao = document.getElementById('gerar-copiar-padrao').checked;
+    
+    // Captura configurações dos dias da semana
+    const diasUteis = [];
+    if (document.getElementById('chk-segunda')?.checked) diasUteis.push(1);
+    if (document.getElementById('chk-terca')?.checked) diasUteis.push(2);
+    if (document.getElementById('chk-quarta')?.checked) diasUteis.push(3);
+    if (document.getElementById('chk-quinta')?.checked) diasUteis.push(4);
+    if (document.getElementById('chk-sexta')?.checked) diasUteis.push(5);
+    const horaSemana = document.getElementById('input-hora-semana')?.value || "19:00";
+    const substituir = document.getElementById('chk-substituir-mes')?.checked;
+
+    const btn = document.getElementById('btn-confirmar-gerar');
+    btn.innerText = "Gerando...";
+    btn.disabled = true;
+
+    try {
+        const meses = { "Janeiro": "01", "Fevereiro": "02", "Março": "03", "Abril": "04", "Maio": "05", "Junho": "06", "Julho": "07", "Agosto": "08", "Setembro": "09", "Outubro": "10", "Novembro": "11", "Dezembro": "12" };
+        const mesNum = parseInt(meses[mesDestino]);
+        const anoNum = parseInt(anoDestino);
+        
+        const date = new Date(anoNum, mesNum - 1, 1);
+        const novasEscalas = [];
+        const mesAnoStr = `${mesDestino} ${anoDestino}`;
+        
+        // 1. Substituir missas existentes se checkbox marcado
+        if (substituir) {
+            const startStr = `${anoNum}-${(mesNum).toString().padStart(2, '0')}-01`;
+            const endDay = new Date(anoNum, mesNum, 0).getDate();
+            const endStr = `${anoNum}-${(mesNum).toString().padStart(2, '0')}-${endDay.toString().padStart(2, '0')}`;
+            
+            const { error: delError } = await supabaseClient.from('escalas')
+                .delete()
+                .gte('data', startStr)
+                .lte('data', endStr);
+            if (delError) throw delError;
+        }
+
+        // 2. Calcular datas a inserir
+        while (date.getMonth() === mesNum - 1) {
+            const dayOfWeek = date.getDay(); // 0 = Domingo, 1=Seg, ..., 6 = Sábado
+            const diaStr = date.getDate().toString().padStart(2, '0');
+            const mesStr = (mesNum).toString().padStart(2, '0');
+            const dataVal = `${anoNum}-${mesStr}-${diaStr}`;
+            const nomesDias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+            const diaSemanaStr = nomesDias[dayOfWeek];
+            
+            let horarios = [];
+
+            // A. Regras Finais de Semana
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                if (copiarPadrao) {
+                    if (dayOfWeek === 6) {
+                        horarios.push({ horario: "19:00", local: "Igreja Matriz" });
+                    } else if (dayOfWeek === 0) {
+                        horarios.push({ horario: "07:00", local: "Igreja Matriz" });
+                        horarios.push({ horario: "08:00", local: "Igreja Matriz" });
+                        horarios.push({ horario: "18:30", local: "Igreja Matriz" });
+                    }
+                } else {
+                    horarios.push({ horario: "", local: "" });
+                }
+            } 
+            // B. Regras Dias Úteis
+            else if (diasUteis.includes(dayOfWeek)) {
+                horarios.push({ horario: horaSemana, local: "Igreja Matriz" });
+            }
+
+            // C. Inserir na lista de novas escalas
+            horarios.forEach(h => {
+                const row = {
+                    data: dataVal,
+                    horario: h.horario,
+                    local: h.local,
+                    observacao: "",
+                    coroinhas: [{val: "", color: ""}, {val: "", color: ""}],
+                    cerimoniarios: [{val: "", color: ""}, {val: "", color: ""}],
+                    extras: {
+                        mesAno: mesAnoStr,
+                        dayHtml: diaSemanaStr,
+                        sublist: null
+                    }
+                };
+                novasEscalas.push(row);
+            });
+
+            date.setDate(date.getDate() + 1);
+        }
+
+        if (novasEscalas.length > 0) {
+            const { error } = await supabaseClient.from('escalas').insert(novasEscalas);
+            if (error) throw error;
+        }
+
+        document.getElementById('select-mes').value = mesDestino;
+        document.getElementById('select-ano').value = anoDestino;
+        
+        updateTituloEscala();
+        saveData();
+        await carregarEscalas();
+        
+        fecharModalGerarMes();
+        alert(`Mês de ${mesDestino} de ${anoDestino} gerado com sucesso!`);
+    } catch (err) {
+        console.error("Erro ao gerar mês:", err);
+        alert("Erro ao gerar mês. Verifique o console.");
+    } finally {
+        btn.innerText = "Confirmar Geração";
+        btn.disabled = false;
+    }
+}
+
+// --- INSERIR MISSA ENTRE LINHAS (INLINE) ---
+async function inserirMissaApos(btn) {
+    const tr = btn.closest('tr');
+    const dateInput = tr.querySelector('.date-input');
+    const dataRef = dateInput ? dateInput.value : '';
+    
+    const mesDestino = document.getElementById('select-mes').value;
+    const anoDestino = document.getElementById('select-ano').value;
+    const mesAnoStr = `${mesDestino} ${anoDestino}`;
+    
+    let diaSemanaStr = "";
+    if(dataRef) {
+        const parts = dataRef.split('-');
+        if (parts.length === 3) {
+            const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+            const dias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+            diaSemanaStr = dias[dateObj.getDay()];
+        }
+    }
+
+    const rowData = {
+        data: dataRef,
+        horario: "",
+        local: "",
+        observacao: "",
+        coroinhas: [{val: "", color: ""}, {val: "", color: ""}],
+        cerimoniarios: [{val: "", color: ""}, {val: "", color: ""}],
+        extras: {
+            mesAno: mesAnoStr,
+            dayHtml: diaSemanaStr,
+            sublist: null
+        }
+    };
+
+    try {
+        const { data, error } = await supabaseClient.from('escalas').insert([rowData]).select();
+        if (error) throw error;
+        
+        await carregarEscalas();
+        
+        if (data && data.length > 0) {
+            const newRowId = data[0].id;
+            setTimeout(() => {
+                destacarLinha(newRowId, false);
+            }, 500);
+        }
+    } catch(err) {
+        console.error("Erro ao inserir nova linha:", err);
+        alert("Erro ao inserir nova missa. Verifique o console.");
     }
 }
