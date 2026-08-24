@@ -1421,7 +1421,8 @@ async function carregarEscalas() {
             .select('*')
             .gte('data', dataInicio)
             .lte('data', dataFim)
-            .order('data', { ascending: true });
+            .order('data', { ascending: true })
+            .order('horario', { ascending: true });
         if (error) throw error;
 
         document.querySelectorAll('#table-coroinhas tbody.bloco-missa').forEach(tb => tb.remove());
@@ -1495,9 +1496,13 @@ function ordenarTabelaPorData(tableId) {
     blocos.sort((a, b) => {
         const dateInputA = a.querySelector('.date-input');
         const dateInputB = b.querySelector('.date-input');
+        const timeInputA = a.querySelector('.time-input');
+        const timeInputB = b.querySelector('.time-input');
 
         const dateA = dateInputA ? dateInputA.value : '';
         const dateB = dateInputB ? dateInputB.value : '';
+        const timeA = timeInputA ? timeInputA.value : '';
+        const timeB = timeInputB ? timeInputB.value : '';
 
         // Se ambos estão vazios, mantém a ordem original
         if (!dateA && !dateB) return 0;
@@ -1506,7 +1511,16 @@ function ordenarTabelaPorData(tableId) {
         // Se B está vazio, joga pro final
         if (!dateB) return -1;
 
-        return new Date(dateA) - new Date(dateB);
+        if (dateA !== dateB) {
+            return new Date(dateA) - new Date(dateB);
+        }
+
+        // Se as datas são iguais, ordena pelo horário
+        if (!timeA && !timeB) return 0;
+        if (!timeA) return 1;
+        if (!timeB) return -1;
+
+        return timeA.localeCompare(timeB);
     });
 
     // Reposiciona os blocos já ordenados na tabela
@@ -2193,7 +2207,7 @@ async function confirmarGeracaoMes() {
                         horarios.push({ horario: "19:00", local: "Igreja Matriz" });
                     } else if (dayOfWeek === 0) {
                         horarios.push({ horario: "07:00", local: "Igreja Matriz" });
-                        horarios.push({ horario: "08:00", local: "Igreja Matriz" });
+                        horarios.push({ horario: "09:00", local: "Igreja Matriz" });
                         horarios.push({ horario: "18:30", local: "Igreja Matriz" });
                     }
                 } else {
