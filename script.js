@@ -375,9 +375,23 @@ function generateUUID() {
 
 async function salvarNovoServidor() {
     const nome = document.getElementById('novo-servidor-nome').value.trim();
+    const dataNascimento = document.getElementById('novo-servidor-data-nascimento').value;
     const idadeStr = document.getElementById('novo-servidor-idade').value;
     const funcao = document.getElementById('novo-servidor-funcao').value;
     const tags = document.getElementById('novo-servidor-tags').value;
+    
+    const responsavelNome = document.getElementById('novo-servidor-responsavel').value.trim();
+    const responsavelTel = document.getElementById('novo-servidor-tel-responsavel').value.trim();
+    const servidorTel = document.getElementById('novo-servidor-tel-proprio').value.trim();
+    
+    const enderecoRua = document.getElementById('novo-servidor-endereco-rua').value.trim();
+    const enderecoBairro = document.getElementById('novo-servidor-endereco-bairro').value.trim();
+    const enderecoCidade = document.getElementById('novo-servidor-endereco-cidade').value.trim();
+    
+    const autorizaImagem = document.getElementById('novo-servidor-autoriza-imagem').checked;
+    const autorizaEventos = document.getElementById('novo-servidor-autoriza-eventos').checked;
+    
+    const observacoes = document.getElementById('novo-servidor-observacoes').value.trim();
 
     if (!nome) {
         alert("Por favor, preencha o nome do servidor.");
@@ -394,32 +408,38 @@ async function salvarNovoServidor() {
 
     if (!Array.isArray(sysConfig.nomes)) sysConfig.nomes = [];
 
+    const serverData = {
+        nome: nome,
+        is_coroinha: funcao === 'coroinha',
+        is_cerimoniario: funcao === 'cerimoniario',
+        data_nascimento: dataNascimento || null,
+        idade: dataNascimento ? calcularIdadeNumber(dataNascimento) : (idadeStr ? parseInt(idadeStr) : null),
+        tags: tagsArray,
+        dias_indisponiveis: diasIndisponiveis,
+        responsavel_nome: responsavelNome,
+        responsavel_telefone: responsavelTel,
+        servidor_telefone: servidorTel,
+        endereco_rua: enderecoRua,
+        endereco_bairro: enderecoBairro,
+        endereco_cidade: enderecoCidade,
+        autoriza_imagem: autorizaImagem,
+        autoriza_eventos: autorizaEventos,
+        observacoes: observacoes
+    };
+
     if (editingServidorId) {
         // Edit mode
         const serverIndex = sysConfig.nomes.findIndex(n => n.id === editingServidorId);
         if (serverIndex !== -1) {
             sysConfig.nomes[serverIndex] = {
                 ...sysConfig.nomes[serverIndex],
-                nome: nome,
-                is_coroinha: funcao === 'coroinha',
-                is_cerimoniario: funcao === 'cerimoniario',
-                idade: idadeStr ? parseInt(idadeStr) : null,
-                tags: tagsArray,
-                dias_indisponiveis: diasIndisponiveis
+                ...serverData
             };
         }
     } else {
         // Add mode
-        const newServer = {
-            id: generateUUID(),
-            nome: nome,
-            is_coroinha: funcao === 'coroinha',
-            is_cerimoniario: funcao === 'cerimoniario',
-            idade: idadeStr ? parseInt(idadeStr) : null,
-            tags: tagsArray,
-            dias_indisponiveis: diasIndisponiveis
-        };
-        sysConfig.nomes.push(newServer);
+        serverData.id = generateUUID();
+        sysConfig.nomes.push(serverData);
     }
 
     sysConfig.nomes.sort((a, b) => a.nome.localeCompare(b.nome));
@@ -450,15 +470,37 @@ function editarServidor(id) {
     document.getElementById('btn-salvar-servidor-text').innerText = 'Salvar Edição';
 
     document.getElementById('novo-servidor-nome').value = servidor.nome || '';
-    document.getElementById('novo-servidor-idade').value = servidor.idade || '';
+    
+    document.getElementById('novo-servidor-data-nascimento').value = servidor.data_nascimento || '';
+    if (servidor.data_nascimento) {
+        calcularIdadeInput();
+    } else {
+        document.getElementById('novo-servidor-idade').value = servidor.idade ? `${servidor.idade} anos` : '';
+    }
+
     document.getElementById('novo-servidor-funcao').value = servidor.is_cerimoniario ? 'cerimoniario' : 'coroinha';
     document.getElementById('novo-servidor-tags').value = servidor.tags ? servidor.tags.join(', ') : '';
+
+    document.getElementById('novo-servidor-responsavel').value = servidor.responsavel_nome || '';
+    document.getElementById('novo-servidor-tel-responsavel').value = servidor.responsavel_telefone || '';
+    document.getElementById('novo-servidor-tel-proprio').value = servidor.servidor_telefone || '';
+    
+    document.getElementById('novo-servidor-endereco-rua').value = servidor.endereco_rua || '';
+    document.getElementById('novo-servidor-endereco-bairro').value = servidor.endereco_bairro || '';
+    document.getElementById('novo-servidor-endereco-cidade').value = servidor.endereco_cidade || '';
+    
+    document.getElementById('novo-servidor-autoriza-imagem').checked = !!servidor.autoriza_imagem;
+    document.getElementById('novo-servidor-autoriza-eventos').checked = !!servidor.autoriza_eventos;
+    
+    document.getElementById('novo-servidor-observacoes').value = servidor.observacoes || '';
 
     // Checkboxes de indisponibilidade
     const checkboxes = document.querySelectorAll('.cb-dia-indisponivel');
     checkboxes.forEach(cb => {
         cb.checked = (servidor.dias_indisponiveis || []).includes(cb.value);
     });
+
+    if (typeof alternarAbaServidor === 'function') alternarAbaServidor('dados');
 
     const modal = document.getElementById('modal-novo-servidor');
     if (modal) modal.classList.remove('hidden');
@@ -1981,8 +2023,12 @@ function abrirModalServidor() {
     document.getElementById('modal-servidor-titulo').innerText = 'Cadastrar Novo Servidor';
     document.getElementById('btn-salvar-servidor-text').innerText = 'Salvar';
 
+    if (typeof alternarAbaServidor === 'function') alternarAbaServidor('dados');
+
     const modal = document.getElementById('modal-novo-servidor');
-    if (modal) modal.classList.remove('hidden');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 }
 
 function fecharModalServidor() {
@@ -1991,9 +2037,77 @@ function fecharModalServidor() {
     if (modal) {
         modal.classList.add('hidden');
         document.getElementById('novo-servidor-nome').value = '';
+        document.getElementById('novo-servidor-data-nascimento').value = '';
         document.getElementById('novo-servidor-idade').value = '';
         document.getElementById('novo-servidor-tags').value = '';
+        document.getElementById('novo-servidor-responsavel').value = '';
+        document.getElementById('novo-servidor-tel-responsavel').value = '';
+        document.getElementById('novo-servidor-tel-proprio').value = '';
+        
+        document.getElementById('novo-servidor-endereco-rua').value = '';
+        document.getElementById('novo-servidor-endereco-bairro').value = '';
+        document.getElementById('novo-servidor-endereco-cidade').value = '';
+        
+        document.getElementById('novo-servidor-autoriza-imagem').checked = false;
+        document.getElementById('novo-servidor-autoriza-eventos').checked = false;
+        
+        document.getElementById('novo-servidor-observacoes').value = '';
         document.querySelectorAll('.cb-dia-indisponivel').forEach(cb => cb.checked = false);
+    }
+}
+
+function calcularIdadeNumber(dataNascimentoStr) {
+    if (!dataNascimentoStr) return null;
+    const dataNasc = new Date(dataNascimentoStr + "T00:00:00");
+    if (isNaN(dataNasc.getTime())) return null;
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - dataNasc.getFullYear();
+    const mes = hoje.getMonth() - dataNasc.getMonth();
+    if (mes < 0 || (mes === 0 && hoje.getDate() < dataNasc.getDate())) {
+        idade--;
+    }
+    return idade;
+}
+
+function calcularIdadeInput() {
+    const dataStr = document.getElementById('novo-servidor-data-nascimento').value;
+    const idadeNum = calcularIdadeNumber(dataStr);
+    const inputIdade = document.getElementById('novo-servidor-idade');
+    if (idadeNum !== null) {
+        inputIdade.value = `${idadeNum} ano${idadeNum !== 1 ? 's' : ''}`;
+    } else {
+        inputIdade.value = '';
+    }
+}
+
+function alternarAbaServidor(aba) {
+    const btnDados = document.getElementById('tab-btn-dados');
+    const btnContato = document.getElementById('tab-btn-contato');
+    const conteudoDados = document.getElementById('tab-conteudo-dados');
+    const conteudoContato = document.getElementById('tab-conteudo-contato');
+
+    if (!btnDados || !btnContato || !conteudoDados || !conteudoContato) return;
+
+    if (aba === 'dados') {
+        btnDados.classList.add('border-blue-600', 'text-blue-600');
+        btnDados.classList.remove('text-slate-500', 'border-transparent');
+        btnContato.classList.remove('border-blue-600', 'text-blue-600');
+        btnContato.classList.add('text-slate-500', 'border-transparent');
+        
+        conteudoDados.classList.remove('hidden');
+        conteudoDados.classList.add('block');
+        conteudoContato.classList.add('hidden');
+        conteudoContato.classList.remove('block');
+    } else {
+        btnContato.classList.add('border-blue-600', 'text-blue-600');
+        btnContato.classList.remove('text-slate-500', 'border-transparent');
+        btnDados.classList.remove('border-blue-600', 'text-blue-600');
+        btnDados.classList.add('text-slate-500', 'border-transparent');
+        
+        conteudoContato.classList.remove('hidden');
+        conteudoContato.classList.add('block');
+        conteudoDados.classList.add('hidden');
+        conteudoDados.classList.remove('block');
     }
 }
 
