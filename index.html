@@ -352,6 +352,7 @@
                                         <th class="px-3 py-2.5 whitespace-nowrap col-local min-w-[200px]">Local</th>
                                         <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Coroinha 1</th>
                                         <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Coroinha 2</th>
+                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Coroinha 3</th>
                                         <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Observações</th>
                                         <th class="px-3 py-2.5 whitespace-nowrap text-center no-print">Ações</th>
                                     </tr>
@@ -1064,6 +1065,11 @@
                     class="local-select min-w-[180px] w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-slate-700 shadow-sm"
                     onchange="handleLocalChange(this); saveData();">
                 </select>
+            </td>
+            <td class="colorable name-cell px-3 py-2.5 whitespace-nowrap align-middle relative">
+                <input type="text"
+                    class="name-input min-w-[130px] w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-slate-700 shadow-sm"
+                    placeholder="Nome" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)">
             </td>
             <td class="colorable name-cell px-3 py-2.5 whitespace-nowrap align-middle relative">
                 <input type="text"

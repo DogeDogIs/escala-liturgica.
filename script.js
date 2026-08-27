@@ -912,25 +912,38 @@ function toggleSublist(btn) {
 }
 
 function applyGeneralDOM(tr, type) {
-    tr.cells[4].colSpan = 2;
-    tr.cells[5].style.display = 'none';
-    tr.cells[4].querySelector('.name-input').style.display = 'none';
-    if (!tr.cells[4].querySelector('.conv-text')) {
-        tr.cells[4].insertAdjacentHTML('beforeend', '<span class="conv-text" style="font-weight:bold; color:#d97706;">TODOS NECESSÁRIOS</span>');
+    const nameCells = Array.from(tr.cells).filter(c => c.classList.contains('name-cell'));
+    if (nameCells.length > 0) {
+        tr.cells[4].colSpan = nameCells.length;
+        for (let i = 1; i < nameCells.length; i++) {
+            tr.cells[4 + i].style.display = 'none';
+        }
+        tr.cells[4].querySelector('.name-input').style.display = 'none';
+        if (!tr.cells[4].querySelector('.conv-text')) {
+            tr.cells[4].insertAdjacentHTML('beforeend', '<span class="conv-text" style="font-weight:bold; color:#d97706;">TODOS NECESSÁRIOS</span>');
+        }
+        tr.cells[4].style.backgroundColor = "rgba(255, 193, 7, 0.15)";
     }
-    tr.cells[4].style.backgroundColor = "rgba(255, 193, 7, 0.15)";
 }
 
 function removeGeneralDOM(tr, type) {
-    tr.cells[4].colSpan = 1;
-    tr.cells[5].style.display = '';
-    tr.cells[4].querySelector('.name-input').style.display = '';
-    const txt = tr.cells[4].querySelector('.conv-text');
-    if (txt) txt.remove();
-    tr.cells[4].style.backgroundColor = '';
-    const warn = tr.cells[6].querySelector('.conv-obs-warn');
-    if (warn) warn.remove();
-    else tr.cells[6].innerHTML = tr.cells[6].innerHTML.replace(/<strong class="conv-obs-warn".*?<\/strong>(<br>)?/, '').replace(/<span class="conv-obs-warn".*?<\/span>\s?/, '');
+    const nameCells = Array.from(tr.cells).filter(c => c.classList.contains('name-cell'));
+    if (nameCells.length > 0) {
+        tr.cells[4].colSpan = 1;
+        for (let i = 1; i < nameCells.length; i++) {
+            tr.cells[4 + i].style.display = '';
+        }
+        tr.cells[4].querySelector('.name-input').style.display = '';
+        const txt = tr.cells[4].querySelector('.conv-text');
+        if (txt) txt.remove();
+        tr.cells[4].style.backgroundColor = '';
+    }
+    const obsCell = tr.querySelector('.obs-cell');
+    if (obsCell) {
+        const warn = obsCell.querySelector('.conv-obs-warn');
+        if (warn) warn.remove();
+        else obsCell.innerHTML = obsCell.innerHTML.replace(/<strong class="conv-obs-warn".*?<\/strong>(<br>)?/, '').replace(/<span class="conv-obs-warn".*?<\/span>\s?/, '');
+    }
 }
 
 function getEventBadgeHTML(ev) {
@@ -1660,8 +1673,26 @@ function exportPDF() {
     const mesAno = `${mes} de ${ano}`;
     const originalTitle = document.title;
     if (mesAno) document.title = `Escala Litúrgica - ${mesAno}`;
+
+    // Preencher temporariamente inputs vazios com "-" para a impressão
+    const nameInputs = document.querySelectorAll('.name-input');
+    const emptyInputs = [];
+    nameInputs.forEach(input => {
+        // Ignora inputs que estão invisíveis (ex: quando há "TODOS CONVOCADOS")
+        if (input.style.display !== 'none' && input.value.trim() === '') {
+            input.value = '-';
+            emptyInputs.push(input);
+        }
+    });
+
     window.print();
+    
     document.title = originalTitle;
+
+    // Reverter os campos para ficarem vazios de novo após imprimir
+    emptyInputs.forEach(input => {
+        input.value = '';
+    });
 }
 
 // --- ZONA DE CONFIGURAÇÕES (GRID) ---
