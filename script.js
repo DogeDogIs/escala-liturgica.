@@ -361,6 +361,7 @@ function updateAllLocalSelects() {
         select.innerHTML = getLocalSelectOptionsHTML(currentVal);
         handleLocalChange(select);
     });
+    updateFiltrosEscalaLocais();
 }
 
 // --- GERENCIAMENTO DE SERVIDORES (NOVO) ---
@@ -2458,4 +2459,104 @@ async function inserirMissaApos(btn) {
         console.error("Erro ao inserir nova linha:", err);
         alert("Erro ao inserir nova missa. Verifique o console.");
     }
+}
+
+// --- FILTROS DE ESCALA ---
+function limparFiltrosEscala() {
+    document.getElementById('filtro-escala-nome').value = '';
+    document.getElementById('filtro-escala-local').value = '';
+    document.getElementById('filtro-escala-dia').value = '';
+    document.getElementById('filtro-escala-hora').value = '';
+    aplicarFiltrosEscala();
+}
+
+function aplicarFiltrosEscala() {
+    const nomeTerm = document.getElementById('filtro-escala-nome').value.toLowerCase().trim();
+    const localTerm = document.getElementById('filtro-escala-local').value.toLowerCase().trim();
+    const diaTerm = document.getElementById('filtro-escala-dia').value.toLowerCase().trim();
+    const horaTerm = document.getElementById('filtro-escala-hora').value;
+
+    const tabelas = ['table-coroinhas', 'table-cerimoniarios'];
+
+    tabelas.forEach(tableId => {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const rows = table.querySelectorAll('tbody.bloco-missa');
+        
+        rows.forEach(tbody => {
+            const tr = tbody.querySelector('.main-row');
+            if (!tr) return;
+
+            let matchNome = false;
+            let matchLocal = false;
+            let matchDia = false;
+            let matchHora = false;
+
+            // Check name
+            if (!nomeTerm) {
+                matchNome = true;
+            } else {
+                const nameInputs = tbody.querySelectorAll('.name-input');
+                for (let inp of nameInputs) {
+                    if (inp.value && inp.value.toLowerCase().includes(nomeTerm)) {
+                        matchNome = true;
+                        break;
+                    }
+                }
+            }
+
+            // Check local
+            if (!localTerm) {
+                matchLocal = true;
+            } else {
+                const localSelect = tr.querySelector('.local-select');
+                if (localSelect && localSelect.value.toLowerCase().includes(localTerm)) {
+                    matchLocal = true;
+                }
+            }
+
+            // Check dia
+            if (!diaTerm) {
+                matchDia = true;
+            } else {
+                const dayCell = tr.querySelector('.day-cell');
+                if (dayCell && dayCell.innerText.toLowerCase().includes(diaTerm)) {
+                    matchDia = true;
+                }
+            }
+
+            // Check hora
+            if (!horaTerm) {
+                matchHora = true;
+            } else {
+                const timeInput = tr.querySelector('.time-input');
+                if (timeInput && timeInput.value === horaTerm) {
+                    matchHora = true;
+                }
+            }
+
+            if (matchNome && matchLocal && matchDia && matchHora) {
+                tbody.style.display = '';
+            } else {
+                tbody.style.display = 'none';
+            }
+        });
+    });
+}
+
+function updateFiltrosEscalaLocais() {
+    const localFiltro = document.getElementById('filtro-escala-local');
+    if (!localFiltro) return;
+    
+    const currentVal = localFiltro.value;
+    let html = '<option value="">Todos os Locais</option>';
+    
+    if (sysConfig.locais && sysConfig.locais.length > 0) {
+        sysConfig.locais.forEach(loc => {
+            html += `<option value="${loc}">${loc}</option>`;
+        });
+    }
+    
+    localFiltro.innerHTML = html;
+    localFiltro.value = currentVal;
 }
