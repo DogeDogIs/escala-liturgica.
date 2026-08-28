@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listener de estado de autenticação (Garante carregamento correto em Produção/GitHub Pages)
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-            
+
             if (isLoginPage) {
                 if (session) {
                     window.location.href = 'index.html';
@@ -46,10 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Evita duplo disparo se o estado de admin for o mesmo
             const newIsAdmin = !!session;
             if (authInitialized && isAdmin === newIsAdmin) return;
-            
+
             isAdmin = newIsAdmin;
             authInitialized = true;
-            
+
             const userDisplay = document.getElementById('user-display');
             if (isAdmin) {
                 if (userDisplay && session.user) {
@@ -89,12 +89,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('global-search');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase();
+                const searchTerms = e.target.value.toLowerCase().trim().split(' ').filter(t => t.length > 0);
                 document.querySelectorAll('.main-row').forEach(row => {
                     let match = false;
-                    if (row.textContent.toLowerCase().includes(term)) {
+                    const rowText = row.textContent.toLowerCase();
+
+                    if (searchTerms.length === 0) {
                         match = true;
+                    } else {
+                        match = searchTerms.every(term => rowText.includes(term));
                     }
+
                     row.style.display = match ? '' : 'none';
                     // also toggle the sublist if it exists
                     const next = row.nextElementSibling;
@@ -160,9 +165,9 @@ function applyVisitanteMode() {
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
-    
+
     const isOpen = sidebar.classList.contains('translate-x-0');
-    
+
     if (isOpen) {
         // Fechar
         sidebar.classList.remove('translate-x-0');
@@ -333,7 +338,7 @@ function handleNameInput(input) {
             return `<li onmousedown="selectAutocomplete('${safeName}', this)">${name}</li>`;
         }).join('');
         ul.classList.add('show');
-        
+
         // Usar posicionamento fixed para escapar totalmente do container da tabela (overflow)
         const inputRect = input.getBoundingClientRect();
         ul.style.position = 'fixed';
@@ -364,7 +369,7 @@ function selectAutocomplete(name, liElement) {
 
     const ul = container.querySelector('.autocomplete-list');
     if (ul) ul.classList.remove('show');
-    
+
     container.style.zIndex = '';
     const tr = container.closest('tr');
     if (tr) tr.style.zIndex = '';
@@ -412,18 +417,18 @@ async function salvarNovoServidor() {
     const idadeStr = document.getElementById('novo-servidor-idade').value;
     const funcao = document.getElementById('novo-servidor-funcao').value;
     const tags = document.getElementById('novo-servidor-tags').value;
-    
+
     const responsavelNome = document.getElementById('novo-servidor-responsavel').value.trim();
     const responsavelTel = document.getElementById('novo-servidor-tel-responsavel').value.trim();
     const servidorTel = document.getElementById('novo-servidor-tel-proprio').value.trim();
-    
+
     const enderecoRua = document.getElementById('novo-servidor-endereco-rua').value.trim();
     const enderecoBairro = document.getElementById('novo-servidor-endereco-bairro').value.trim();
     const enderecoCidade = document.getElementById('novo-servidor-endereco-cidade').value.trim();
-    
+
     const autorizaImagem = document.getElementById('novo-servidor-autoriza-imagem').checked;
     const autorizaEventos = document.getElementById('novo-servidor-autoriza-eventos').checked;
-    
+
     const observacoes = document.getElementById('novo-servidor-observacoes').value.trim();
 
     if (!nome) {
@@ -503,7 +508,7 @@ function editarServidor(id) {
     document.getElementById('btn-salvar-servidor-text').innerText = 'Salvar Edição';
 
     document.getElementById('novo-servidor-nome').value = servidor.nome || '';
-    
+
     document.getElementById('novo-servidor-data-nascimento').value = servidor.data_nascimento || '';
     if (servidor.data_nascimento) {
         calcularIdadeInput();
@@ -517,14 +522,14 @@ function editarServidor(id) {
     document.getElementById('novo-servidor-responsavel').value = servidor.responsavel_nome || '';
     document.getElementById('novo-servidor-tel-responsavel').value = servidor.responsavel_telefone || '';
     document.getElementById('novo-servidor-tel-proprio').value = servidor.servidor_telefone || '';
-    
+
     document.getElementById('novo-servidor-endereco-rua').value = servidor.endereco_rua || '';
     document.getElementById('novo-servidor-endereco-bairro').value = servidor.endereco_bairro || '';
     document.getElementById('novo-servidor-endereco-cidade').value = servidor.endereco_cidade || '';
-    
+
     document.getElementById('novo-servidor-autoriza-imagem').checked = !!servidor.autoriza_imagem;
     document.getElementById('novo-servidor-autoriza-eventos').checked = !!servidor.autoriza_eventos;
-    
+
     document.getElementById('novo-servidor-observacoes').value = servidor.observacoes || '';
 
     // Checkboxes de indisponibilidade
@@ -1557,7 +1562,7 @@ async function carregarEscalas() {
         const meses = { "Janeiro": "01", "Fevereiro": "02", "Março": "03", "Abril": "04", "Maio": "05", "Junho": "06", "Julho": "07", "Agosto": "08", "Setembro": "09", "Outubro": "10", "Novembro": "11", "Dezembro": "12" };
         const mesNum = meses[mesVal] || "01";
         const anoNum = anoVal || new Date().getFullYear();
-        
+
         const dataInicio = `${anoNum}-${mesNum}-01`;
         const lastDay = new Date(anoNum, parseInt(mesNum), 0).getDate();
         const dataFim = `${anoNum}-${mesNum}-${lastDay.toString().padStart(2, '0')}`;
@@ -1568,7 +1573,7 @@ async function carregarEscalas() {
             .lte('data', dataFim)
             .order('data', { ascending: true })
             .order('horario', { ascending: true });
-            
+
         if (isAdmin) {
             query = query.eq('versao', 'edicao');
         } else {
@@ -1595,7 +1600,7 @@ async function carregarEscalas() {
 
         if (escalas && escalas.length > 0) {
             escalas.forEach(row => {
-                
+
                 const rowData = row.extras || {};
                 rowData.id = row.id;
                 if (row.data) rowData.dateVal = row.data;
@@ -1633,40 +1638,40 @@ async function carregarEscalas() {
 
         // Empty state check for visitors
         let emptyMsg = document.getElementById('empty-escala-msg');
-        
+
         if (!isAdmin && (!escalas || escalas.length === 0)) {
-            if(tableCoroinhas) tableCoroinhas.parentElement.style.display = 'none';
-            if(tableCerimoniarios) tableCerimoniarios.parentElement.style.display = 'none';
+            if (tableCoroinhas) tableCoroinhas.parentElement.style.display = 'none';
+            if (tableCerimoniarios) tableCerimoniarios.parentElement.style.display = 'none';
             const tabBtnCor = document.querySelector('.tab-btn[onclick*="tab-coroinhas"]');
-            if(tabBtnCor) tabBtnCor.style.display = 'none';
+            if (tabBtnCor) tabBtnCor.style.display = 'none';
             const tabBtnCer = document.querySelector('.tab-btn[onclick*="tab-cerimoniarios"]');
-            if(tabBtnCer) tabBtnCer.style.display = 'none';
-            
-            if(!emptyMsg) {
+            if (tabBtnCer) tabBtnCer.style.display = 'none';
+
+            if (!emptyMsg) {
                 const msg = document.createElement('div');
                 msg.id = 'empty-escala-msg';
                 msg.className = 'text-center p-8 bg-white rounded-xl shadow-sm border border-slate-100 mb-6';
                 msg.innerHTML = '<p class="text-slate-500 font-semibold text-lg">Nenhuma escala publicada para este mês ainda.</p>';
                 const sectionEscalas = document.getElementById('section-escalas');
-                if(sectionEscalas) sectionEscalas.appendChild(msg);
+                if (sectionEscalas) sectionEscalas.appendChild(msg);
             } else {
                 emptyMsg.style.display = 'block';
             }
         } else {
-            if(tableCoroinhas) tableCoroinhas.parentElement.style.display = '';
-            if(tableCerimoniarios) tableCerimoniarios.parentElement.style.display = '';
+            if (tableCoroinhas) tableCoroinhas.parentElement.style.display = '';
+            if (tableCerimoniarios) tableCerimoniarios.parentElement.style.display = '';
             const tabBtnCor = document.querySelector('.tab-btn[onclick*="tab-coroinhas"]');
-            if(tabBtnCor) tabBtnCor.style.display = '';
+            if (tabBtnCor) tabBtnCor.style.display = '';
             const tabBtnCer = document.querySelector('.tab-btn[onclick*="tab-cerimoniarios"]');
-            if(tabBtnCer) tabBtnCer.style.display = '';
-            if(emptyMsg) emptyMsg.style.display = 'none';
+            if (tabBtnCer) tabBtnCer.style.display = '';
+            if (emptyMsg) emptyMsg.style.display = 'none';
         }
 
         // Badge & Publish button logic for admin
         if (isAdmin) {
             const badge = document.getElementById('badge-status-escala');
             const btnPublicar = document.getElementById('btn-publicar-mes');
-            
+
             if (badge) {
                 badge.textContent = 'Modo Edição (Restrito)';
                 badge.className = 'admin-only ml-2 px-2.5 py-1.5 text-xs font-bold rounded-full no-print bg-purple-100 text-purple-700';
@@ -1684,12 +1689,12 @@ async function carregarEscalas() {
 
         highlightNextMass();
         ordenarTodasTabelas();
-        
+
         // Populate Location Filter for Visitors dynamically
         if (!isAdmin) {
             const uniqueLocals = new Set();
-            escalas.forEach(r => { if(r.local && r.local.trim()) uniqueLocals.add(r.local.trim()); });
-            
+            escalas.forEach(r => { if (r.local && r.local.trim()) uniqueLocals.add(r.local.trim()); });
+
             const localFiltro = document.getElementById('filtro-escala-local');
             if (localFiltro) {
                 const currentVal = localFiltro.value;
@@ -1867,7 +1872,7 @@ function exportPDF() {
     });
 
     window.print();
-    
+
     document.title = originalTitle;
 
     // Reverter os campos para ficarem vazios de novo após imprimir
@@ -2255,14 +2260,14 @@ function fecharModalServidor() {
         document.getElementById('novo-servidor-responsavel').value = '';
         document.getElementById('novo-servidor-tel-responsavel').value = '';
         document.getElementById('novo-servidor-tel-proprio').value = '';
-        
+
         document.getElementById('novo-servidor-endereco-rua').value = '';
         document.getElementById('novo-servidor-endereco-bairro').value = '';
         document.getElementById('novo-servidor-endereco-cidade').value = '';
-        
+
         document.getElementById('novo-servidor-autoriza-imagem').checked = false;
         document.getElementById('novo-servidor-autoriza-eventos').checked = false;
-        
+
         document.getElementById('novo-servidor-observacoes').value = '';
         document.querySelectorAll('.cb-dia-indisponivel').forEach(cb => cb.checked = false);
     }
@@ -2305,7 +2310,7 @@ function alternarAbaServidor(aba) {
         btnDados.classList.remove('text-slate-500', 'border-transparent');
         btnContato.classList.remove('border-blue-600', 'text-blue-600');
         btnContato.classList.add('text-slate-500', 'border-transparent');
-        
+
         conteudoDados.classList.remove('hidden');
         conteudoDados.classList.add('block');
         conteudoContato.classList.add('hidden');
@@ -2315,7 +2320,7 @@ function alternarAbaServidor(aba) {
         btnContato.classList.remove('text-slate-500', 'border-transparent');
         btnDados.classList.remove('border-blue-600', 'text-blue-600');
         btnDados.classList.add('text-slate-500', 'border-transparent');
-        
+
         conteudoContato.classList.remove('hidden');
         conteudoContato.classList.add('block');
         conteudoDados.classList.add('hidden');
@@ -2444,7 +2449,7 @@ function aplicarCoresCelulas(tr, coresObj) {
             tr.cells[idx].style.backgroundColor = coresObj[key] || 'transparent';
             tr.cells[idx].style.transition = 'background-color 0.3s ease';
         }
-}
+    }
 }
 
 // --- GERAR MÊS (EM LOTE) ---
@@ -2454,7 +2459,7 @@ function abrirModalGerarMes() {
     document.getElementById('gerar-trava-input').value = '';
     document.getElementById('btn-confirmar-gerar').disabled = true;
     document.getElementById('btn-confirmar-gerar').className = "px-4 py-2 bg-slate-300 text-white rounded-lg text-sm font-bold shadow-sm cursor-not-allowed transition-colors";
-    
+
     document.getElementById('modal-gerar-mes').classList.remove('hidden');
 }
 
@@ -2478,7 +2483,7 @@ async function confirmarGeracaoMes() {
     const mesDestino = document.getElementById('gerar-mes-select').value;
     const anoDestino = document.getElementById('gerar-ano-select').value;
     const copiarPadrao = document.getElementById('gerar-copiar-padrao').checked;
-    
+
     // Captura configurações dos dias da semana
     const diasUteis = [];
     if (document.getElementById('chk-segunda')?.checked) diasUteis.push(1);
@@ -2497,17 +2502,17 @@ async function confirmarGeracaoMes() {
         const meses = { "Janeiro": "01", "Fevereiro": "02", "Março": "03", "Abril": "04", "Maio": "05", "Junho": "06", "Julho": "07", "Agosto": "08", "Setembro": "09", "Outubro": "10", "Novembro": "11", "Dezembro": "12" };
         const mesNum = parseInt(meses[mesDestino]);
         const anoNum = parseInt(anoDestino);
-        
+
         const date = new Date(anoNum, mesNum - 1, 1);
         const novasEscalas = [];
         const mesAnoStr = `${mesDestino} ${anoDestino}`;
-        
+
         // 1. Substituir missas existentes se checkbox marcado
         if (substituir) {
             const startStr = `${anoNum}-${(mesNum).toString().padStart(2, '0')}-01`;
             const endDay = new Date(anoNum, mesNum, 0).getDate();
             const endStr = `${anoNum}-${(mesNum).toString().padStart(2, '0')}-${endDay.toString().padStart(2, '0')}`;
-            
+
             const { error: delError } = await supabaseClient.from('escalas')
                 .delete()
                 .gte('data', startStr)
@@ -2523,7 +2528,7 @@ async function confirmarGeracaoMes() {
             const dataVal = `${anoNum}-${mesStr}-${diaStr}`;
             const nomesDias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
             const diaSemanaStr = nomesDias[dayOfWeek];
-            
+
             let horarios = [];
 
             // A. Regras Finais de Semana
@@ -2539,7 +2544,7 @@ async function confirmarGeracaoMes() {
                 } else {
                     horarios.push({ horario: "", local: "" });
                 }
-            } 
+            }
             // B. Regras Dias Úteis
             else if (diasUteis.includes(dayOfWeek)) {
                 horarios.push({ horario: horaSemana, local: "Igreja Matriz" });
@@ -2552,8 +2557,8 @@ async function confirmarGeracaoMes() {
                     horario: h.horario,
                     local: h.local,
                     observacao: "",
-                    coroinhas: [{val: "", color: ""}, {val: "", color: ""}],
-                    cerimoniarios: [{val: "", color: ""}, {val: "", color: ""}],
+                    coroinhas: [{ val: "", color: "" }, { val: "", color: "" }],
+                    cerimoniarios: [{ val: "", color: "" }, { val: "", color: "" }],
                     extras: {
                         mesAno: mesAnoStr,
                         dayHtml: diaSemanaStr,
@@ -2573,11 +2578,11 @@ async function confirmarGeracaoMes() {
 
         document.getElementById('select-mes').value = mesDestino;
         document.getElementById('select-ano').value = anoDestino;
-        
+
         updateTituloEscala();
         saveData();
         await carregarEscalas();
-        
+
         fecharModalGerarMes();
         alert(`Mês de ${mesDestino} de ${anoDestino} gerado com sucesso!`);
     } catch (err) {
@@ -2594,13 +2599,13 @@ async function inserirMissaApos(btn) {
     const tr = btn.closest('tr');
     const dateInput = tr.querySelector('.date-input');
     const dataRef = dateInput ? dateInput.value : '';
-    
+
     const mesDestino = document.getElementById('select-mes').value;
     const anoDestino = document.getElementById('select-ano').value;
     const mesAnoStr = `${mesDestino} ${anoDestino}`;
-    
+
     let diaSemanaStr = "";
-    if(dataRef) {
+    if (dataRef) {
         const parts = dataRef.split('-');
         if (parts.length === 3) {
             const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -2614,8 +2619,8 @@ async function inserirMissaApos(btn) {
         horario: "",
         local: "",
         observacao: "",
-        coroinhas: [{val: "", color: ""}, {val: "", color: ""}],
-        cerimoniarios: [{val: "", color: ""}, {val: "", color: ""}],
+        coroinhas: [{ val: "", color: "" }, { val: "", color: "" }],
+        cerimoniarios: [{ val: "", color: "" }, { val: "", color: "" }],
         extras: {
             mesAno: mesAnoStr,
             dayHtml: diaSemanaStr,
@@ -2626,16 +2631,16 @@ async function inserirMissaApos(btn) {
     try {
         const { data, error } = await supabaseClient.from('escalas').insert([rowData]).select();
         if (error) throw error;
-        
+
         await carregarEscalas();
-        
+
         if (data && data.length > 0) {
             const newRowId = data[0].id;
             setTimeout(() => {
                 destacarLinha(newRowId, false);
             }, 500);
         }
-    } catch(err) {
+    } catch (err) {
         console.error("Erro ao inserir nova linha:", err);
         alert("Erro ao inserir nova missa. Verifique o console.");
     }
@@ -2651,7 +2656,9 @@ function limparFiltrosEscala() {
 }
 
 function aplicarFiltrosEscala() {
-    const nomeTerm = document.getElementById('filtro-escala-nome').value.toLowerCase().trim();
+    const nomeInput = document.getElementById('filtro-escala-nome').value.toLowerCase().trim();
+    const termosBusca = nomeInput ? nomeInput.split(' ').filter(t => t.length > 0) : [];
+
     const localTerm = document.getElementById('filtro-escala-local').value.toLowerCase().trim();
     const diaTerm = document.getElementById('filtro-escala-dia').value.toLowerCase().trim();
     const horaTerm = document.getElementById('filtro-escala-hora').value;
@@ -2662,7 +2669,7 @@ function aplicarFiltrosEscala() {
         const table = document.getElementById(tableId);
         if (!table) return;
         const rows = table.querySelectorAll('tbody.bloco-missa');
-        
+
         rows.forEach(tbody => {
             const tr = tbody.querySelector('.main-row');
             if (!tr) return;
@@ -2673,14 +2680,17 @@ function aplicarFiltrosEscala() {
             let matchHora = false;
 
             // Check name
-            if (!nomeTerm) {
+            if (termosBusca.length === 0) {
                 matchNome = true;
             } else {
                 const nameInputs = tbody.querySelectorAll('.name-input');
                 for (let inp of nameInputs) {
-                    if (inp.value && inp.value.toLowerCase().includes(nomeTerm)) {
-                        matchNome = true;
-                        break;
+                    if (inp.value) {
+                        const nomeServo = inp.value.toLowerCase();
+                        if (termosBusca.every(termo => nomeServo.includes(termo))) {
+                            matchNome = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -2736,7 +2746,13 @@ function aplicarFiltrosEscala() {
         const cDia = card.getAttribute('data-dia') || '';
         const cHora = card.getAttribute('data-hora') || '';
 
-        if (!nomeTerm || cNome.includes(nomeTerm)) matchNome = true;
+        if (termosBusca.length === 0) {
+            matchNome = true;
+        } else {
+            // Em mobile, data-nome tem todos os nomes em caixa baixa concatenados
+            matchNome = termosBusca.every(termo => cNome.includes(termo));
+        }
+
         if (!localTerm || cLocal.includes(localTerm)) matchLocal = true;
         if (!diaTerm || cDia.includes(diaTerm)) matchDia = true;
         if (!horaTerm || cHora === horaTerm) matchHora = true;
@@ -2752,16 +2768,16 @@ function aplicarFiltrosEscala() {
 function updateFiltrosEscalaLocais() {
     const localFiltro = document.getElementById('filtro-escala-local');
     if (!localFiltro) return;
-    
+
     const currentVal = localFiltro.value;
     let html = '<option value="">Todos os Locais</option>';
-    
+
     if (sysConfig.locais && sysConfig.locais.length > 0) {
         sysConfig.locais.forEach(loc => {
             html += `<option value="${loc}">${loc}</option>`;
         });
     }
-    
+
     localFiltro.innerHTML = html;
     localFiltro.value = currentVal;
 }
@@ -2769,8 +2785,8 @@ function updateFiltrosEscalaLocais() {
 // --- PUBLICAR MÊS ---
 async function publicarMesAtual() {
     const btn = document.getElementById('btn-publicar-mes');
-    if(!btn) return;
-    
+    if (!btn) return;
+
     if (btn.disabled) return;
 
     if (!confirm("Isso irá espelhar todas as missas e edições deste mês para a visão do público (Visitantes). Deseja continuar?")) return;
@@ -2789,7 +2805,7 @@ async function publicarMesAtual() {
         const meses = { "Janeiro": "01", "Fevereiro": "02", "Março": "03", "Abril": "04", "Maio": "05", "Junho": "06", "Julho": "07", "Agosto": "08", "Setembro": "09", "Outubro": "10", "Novembro": "11", "Dezembro": "12" };
         const mesNum = meses[mesVal] || "01";
         const anoNum = anoVal || new Date().getFullYear();
-        
+
         const dataInicio = `${anoNum}-${mesNum}-01`;
         const lastDay = new Date(anoNum, parseInt(mesNum), 0).getDate();
         const dataFim = `${anoNum}-${mesNum}-${lastDay.toString().padStart(2, '0')}`;
@@ -2800,7 +2816,7 @@ async function publicarMesAtual() {
             .eq('versao', 'publicada')
             .gte('data', dataInicio)
             .lte('data', dataFim);
-        
+
         if (errDel) throw errDel;
 
         // 2. Coleta os dados de edição mais recentes do banco
@@ -2809,7 +2825,7 @@ async function publicarMesAtual() {
             .eq('versao', 'edicao')
             .gte('data', dataInicio)
             .lte('data', dataFim);
-            
+
         if (errFetch) throw errFetch;
 
         // 3. Clona e insere na "vitrine" (versao = publicada)
@@ -2823,19 +2839,19 @@ async function publicarMesAtual() {
 
             const { error: errIns } = await supabaseClient.from('escalas')
                 .insert(publicadasToInsert);
-                
+
             if (errIns) throw errIns;
         }
 
         alert("Escala publicada com sucesso!");
-        
+
         isAdmin = previousIsAdmin; // Restaura permissão
         btn.disabled = false;
         btn.innerHTML = btnOriginalHtml;
-        
+
         carregarEscalas(); // Refresh visual
 
-    } catch(err) {
+    } catch (err) {
         console.error(err);
         alert("Erro ao publicar escala. Verifique o console.");
         isAdmin = previousIsAdmin;
@@ -2863,7 +2879,7 @@ function renderMobileCards(escalasArray) {
     const formatData = (d) => {
         if (!d) return '--/--';
         const parts = d.split('-');
-        if(parts.length === 3) return `${parts[2]}/${parts[1]}`;
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
         return d;
     };
 
@@ -2885,21 +2901,22 @@ function renderMobileCards(escalasArray) {
         const hora = row.horario || '--:--';
         const local = row.local || 'Não definido';
         const obs = row.observacao || '';
-        
+
         const title = `${dia}, ${dataStr} &bull; ${hora}`;
 
         let obsHtml = '';
         if (obs.trim() !== '') {
-            let cleanObs = obs.replace(/<br[^>]*>/gi, '').trim();
+            let cleanObs = obs.replace(/<br[^>]*>/gi, ' ').trim();
             cleanObs = cleanObs.replace(/margin-bottom:\s*4px;?/gi, 'margin-bottom: 0px;');
-            obsHtml = `<div class="mt-2 flex"><span class="bg-amber-100 text-amber-800 text-xs p-1 rounded-full font-medium inline-flex items-center justify-center">${cleanObs}</span></div>`;
+            // Removemos o fundo amarelo e deixamos apenas a tag original
+            obsHtml = `<div class="mt-2 flex flex-wrap gap-1 items-center">${cleanObs}</div>`;
         }
 
         const buildCard = (servos, type) => {
             let servosList = '';
             let nomesBusca = [];
             let validNamesCount = 0;
-            
+
             const isTodosConvocados = row.extras && row.extras.wasGeneral;
             const isCerimoniarios = type === 'cerimoniarios';
             const labels = isCerimoniarios ? ["Cruciferário", "Cerimonialista"] : ["Coroinha 1", "Coroinha 2", "Coroinha 3"];
@@ -2912,15 +2929,15 @@ function renderMobileCards(escalasArray) {
                     nomeStr = String(nomeObj);
                 }
 
-                if(nomeStr.trim() !== '') {
+                if (nomeStr.trim() !== '') {
                     validNamesCount++;
                     nomesBusca.push(nomeStr.toLowerCase());
                 } else {
                     nomeStr = '-';
                 }
-                
-                const label = labels[idx] || `Servo ${idx+1}`;
-                
+
+                const label = labels[idx] || `Servo ${idx + 1}`;
+
                 let renderNames = `<div class="text-sm ${nomeStr === '-' ? 'text-slate-400 font-medium' : 'text-slate-700 font-semibold'} pl-2 border-l-2 border-slate-200"><p>${nomeStr}</p></div>`;
 
                 servosList += `
@@ -2930,7 +2947,7 @@ function renderMobileCards(escalasArray) {
                     </div>
                 `;
             });
-            
+
             // Renderiza funções adicionais (Sublistas)
             if (row.extras && row.extras.sublist) {
                 row.extras.sublist.forEach(r => {
@@ -2938,7 +2955,7 @@ function renderMobileCards(escalasArray) {
                     if (nomeStr !== '') {
                         const nomesArray = nomeStr.split(',').map(n => n.trim()).filter(n => n);
                         const label = r.name || 'Função Adicional';
-                        
+
                         validNamesCount += nomesArray.length;
                         nomesBusca.push(...nomesArray.map(n => n.toLowerCase()));
 
