@@ -22,70 +22,88 @@ let sysConfig = {
     funcoes_extras: ['Coroinha 1', 'Sino', 'Vela 1', 'Cruz', 'Turiferário']
 };
 
+let isAdmin = false;
+let isRendering = false;
+let authInitialized = false;
+
 // ====== ROTEAMENTO E INICIALIZAÇÃO ======
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     const isLoginPage = window.location.pathname.includes('login.html');
 
-    try {
-        const { data: { session }, error } = await supabaseClient.auth.getSession();
-        if (error) throw error;
-
-        if (isLoginPage) {
-            if (session) {
-                window.location.href = 'index.html';
-                return;
-            }
-            setupLoginForm();
-        } else {
-            if (!session) {
-                window.location.href = 'login.html';
+    // Listener de estado de autenticação (Garante carregamento correto em Produção/GitHub Pages)
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            
+            if (isLoginPage) {
+                if (session) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                setupLoginForm();
                 return;
             }
 
-            const { data: { user } } = await supabaseClient.auth.getUser();
+            // Evita duplo disparo se o estado de admin for o mesmo
+            const newIsAdmin = !!session;
+            if (authInitialized && isAdmin === newIsAdmin) return;
+            
+            isAdmin = newIsAdmin;
+            authInitialized = true;
+            
             const userDisplay = document.getElementById('user-display');
-            if (userDisplay && user) {
-                userDisplay.textContent = user.email;
+            if (isAdmin) {
+                if (userDisplay && session.user) {
+                    userDisplay.textContent = session.user.email;
+                }
+            } else {
+                if (userDisplay) {
+                    userDisplay.textContent = 'Visitante';
+                }
+                document.body.classList.add('visitante-mode');
+                applyVisitanteMode();
             }
 
-            await carregarConfiguracoes();
-            await carregarEscalas();
-
-            // Ativar Supabase Realtime para sincronização entre usuários
-            supabaseClient.channel('custom-all-channel')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'escalas' }, (payload) => {
-                    console.log('Atualização Realtime recebida na tabela escalas:', payload);
-                    carregarEscalas();
-                })
-                .subscribe();
-
-            const activeTab = localStorage.getItem('activeTabV2') || 'tab-coroinhas';
-            const tabBtn = document.querySelector(`.tab-btn[onclick*="${activeTab}"]`);
-            if (tabBtn) tabBtn.click();
-
-            // Global Search Listener
-            const searchInput = document.getElementById('global-search');
-            if (searchInput) {
-                searchInput.addEventListener('input', (e) => {
-                    const term = e.target.value.toLowerCase();
-                    document.querySelectorAll('.main-row').forEach(row => {
-                        let match = false;
-                        if (row.textContent.toLowerCase().includes(term)) {
-                            match = true;
-                        }
-                        row.style.display = match ? '' : 'none';
-                        // also toggle the sublist if it exists
-                        const next = row.nextElementSibling;
-                        if (next && next.classList.contains('sublist-row')) {
-                            next.style.display = match ? '' : 'none';
-                        }
-                    });
-                });
+            try {
+                await carregarConfiguracoes();
+                await carregarEscalas();
+            } catch (err) {
+                console.error("Erro na inicialização:", err);
             }
         }
-    } catch (err) {
-        console.error("Erro na verificação de sessão:", err);
-        if (!isLoginPage) window.location.href = 'login.html';
+    });
+
+    if (!isLoginPage) {
+        // Ativar Supabase Realtime para sincronização entre usuários
+        supabaseClient.channel('custom-all-channel')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'escalas' }, (payload) => {
+                console.log('Atualização Realtime recebida na tabela escalas:', payload);
+                carregarEscalas();
+            })
+            .subscribe();
+
+        const activeTab = localStorage.getItem('activeTabV2') || 'tab-coroinhas';
+        const tabBtn = document.querySelector(`.tab-btn[onclick*="${activeTab}"]`);
+        if (tabBtn) tabBtn.click();
+
+        // Global Search Listener
+        const searchInput = document.getElementById('global-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                document.querySelectorAll('.main-row').forEach(row => {
+                    let match = false;
+                    if (row.textContent.toLowerCase().includes(term)) {
+                        match = true;
+                    }
+                    row.style.display = match ? '' : 'none';
+                    // also toggle the sublist if it exists
+                    const next = row.nextElementSibling;
+                    if (next && next.classList.contains('sublist-row')) {
+                        next.style.display = match ? '' : 'none';
+                    }
+                });
+            });
+        }
     }
 });
 
@@ -118,9 +136,23 @@ function setupLoginForm() {
 async function logout() {
     try {
         await supabaseClient.auth.signOut();
-        window.location.href = 'login.html';
+        window.location.reload();
     } catch (err) {
         alert("Erro ao sair do sistema.");
+    }
+}
+
+function applyVisitanteMode() {
+    const logoutBtn = document.getElementById('fab-logout');
+    if (logoutBtn) {
+        logoutBtn.style.display = '';
+        logoutBtn.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+            Fazer Login
+        `;
+        logoutBtn.onclick = () => window.location.href = 'login.html';
+        logoutBtn.classList.remove('bg-red-50', 'text-red-600', 'hover:bg-red-100');
+        logoutBtn.classList.add('bg-blue-50', 'text-blue-600', 'hover:bg-blue-100');
     }
 }
 
@@ -1039,16 +1071,39 @@ function createSublist(mainRow, type, existingData = null) {
     const subTr = document.createElement('tr');
     subTr.className = 'sublist-row';
 
+    const defaultRoles = type === 'coroinhas' ? ['Coroinha 1', 'Coroinha 2'] : ['Cruciferário', 'Cerimonialista'];
+    let rolesData = existingData || defaultRoles.map(r => ({ name: r, val: '' }));
+
+    if (!isAdmin) {
+        let html = `<td colspan="${colsCount}">
+        <div class="sublist-container w-full bg-slate-50 border border-slate-200 rounded-lg p-4 mt-3 mb-4 shadow-inner">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-2 mb-3">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Missa - Definição de Funções</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">`;
+
+        rolesData.forEach(r => {
+            const valSafe = r.val.trim();
+            if (valSafe === '') return;
+            html += `<div class="role-item relative flex items-center gap-2 bg-white border border-slate-200 p-2 rounded-md shadow-sm">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">${r.name}</span>
+                        <span class="text-sm font-semibold text-slate-700 ml-2">${valSafe}</span>
+                     </div>`;
+        });
+
+        html += `</div></div></td>`;
+        subTr.innerHTML = html;
+        mainRow.parentNode.insertBefore(subTr, mainRow.nextSibling);
+        return;
+    }
+
     let html = `<td colspan="${colsCount}">
         <div class="sublist-container w-full bg-slate-50 border border-slate-200 rounded-lg p-4 mt-3 mb-4 shadow-inner">
             <div class="flex justify-between items-center border-b border-slate-200 pb-2 mb-3">
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Missa - Definição de Funções</span>
-                <button class="flex items-center gap-1 text-xs text-slate-600 hover:text-blue-600 no-print" onclick="toggleSublistFullscreen(this)">📱 Tela Cheia</button>
+                <button class="flex items-center gap-1 text-xs text-slate-600 hover:text-blue-600 no-print" onclick="toggleSublistFullscreen(this)">🔍 Tela Cheia</button>
             </div>
             <div class="sublist-roles grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">`;
-
-    const defaultRoles = type === 'coroinhas' ? ['Coroinha 1', 'Coroinha 2'] : ['Cruciferário', 'Cerimonialista'];
-    let rolesData = existingData || defaultRoles.map(r => ({ name: r, val: '' }));
 
     rolesData.forEach(r => {
         const valSafe = r.val.replace(/"/g, '&quot;');
@@ -1160,9 +1215,8 @@ function addRow(tableId, data = null) {
         aplicarCoresCelulas(newRow, data.coresCelulas);
     }
 
-    saveData();
-
     if (!data) {
+        saveData();
         destacarLinha(newRow.id, false);
     }
 }
@@ -1210,6 +1264,7 @@ function updateTituloEscala() {
 }
 
 function saveData() {
+    if (!isAdmin) return;
     const mes = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
     const ano = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
     const mesAno = `${mes} ${ano}`;
@@ -1304,6 +1359,7 @@ function getTableData(tableId) {
 }
 
 async function syncToSupabase() {
+    if (!isAdmin) return;
     if (!isDirty) return;
 
     const saveBtn = document.getElementById('fab-manual-save');
@@ -1449,12 +1505,42 @@ async function carregarConfiguracoes() {
             if (mesEl && configData.mes_cabecalho) mesEl.value = configData.mes_cabecalho;
             if (anoEl && configData.ano_cabecalho) anoEl.value = configData.ano_cabecalho;
             updateTituloEscala();
-        } else if (configError && configError.code === 'PGRST116') {
+        } else if (configError && configError.code === 'PGRST116' && isAdmin) {
             await supabaseClient.from('configuracoes').insert([{ id: 1, ...sysConfig }]);
             renderServidoresCadastrados();
             renderConfigEventos();
             renderConfigLocais();
             renderConfigFuncoes();
+        }
+
+        if (!isAdmin) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            let { data: targetEscala } = await supabaseClient.from('escalas')
+                .select('data')
+                .gte('data', todayStr)
+                .order('data', { ascending: true })
+                .limit(1);
+
+            if (!targetEscala || targetEscala.length === 0) {
+                const { data: lastEscala } = await supabaseClient.from('escalas')
+                    .select('data')
+                    .order('data', { ascending: false })
+                    .limit(1);
+                targetEscala = lastEscala;
+            }
+
+            if (targetEscala && targetEscala.length > 0 && targetEscala[0].data) {
+                const parts = targetEscala[0].data.split('-');
+                if (parts.length === 3) {
+                    const mesesArray = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                    const mesIndex = parseInt(parts[1], 10) - 1;
+                    const mesEl = document.getElementById('select-mes');
+                    const anoEl = document.getElementById('select-ano');
+                    if (mesEl && mesesArray[mesIndex]) mesEl.value = mesesArray[mesIndex];
+                    if (anoEl) anoEl.value = parts[0];
+                    updateTituloEscala();
+                }
+            }
         }
     } catch (err) {
         console.error("Erro ao carregar configurações:", err);
@@ -1462,6 +1548,9 @@ async function carregarConfiguracoes() {
 }
 
 async function carregarEscalas() {
+    if (isRendering) return;
+    isRendering = true;
+
     try {
         const mesVal = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
         const anoVal = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
@@ -1473,22 +1562,40 @@ async function carregarEscalas() {
         const lastDay = new Date(anoNum, parseInt(mesNum), 0).getDate();
         const dataFim = `${anoNum}-${mesNum}-${lastDay.toString().padStart(2, '0')}`;
 
-        const { data: escalas, error } = await supabaseClient.from('escalas')
+        let query = supabaseClient.from('escalas')
             .select('*')
             .gte('data', dataInicio)
             .lte('data', dataFim)
             .order('data', { ascending: true })
             .order('horario', { ascending: true });
+            
+        if (isAdmin) {
+            query = query.eq('versao', 'edicao');
+        } else {
+            query = query.eq('versao', 'publicada');
+        }
+
+        const { data: escalas, error } = await query;
         if (error) throw error;
 
-        document.querySelectorAll('#table-coroinhas tbody.bloco-missa').forEach(tb => tb.remove());
-        document.querySelectorAll('#table-cerimoniarios tbody.bloco-missa').forEach(tb => tb.remove());
-        document.querySelectorAll('.linha-separadora-semana').forEach(row => row.remove());
+        const tableCoroinhas = document.getElementById('table-coroinhas');
+        if (tableCoroinhas) {
+            const theadHtml = tableCoroinhas.querySelector('thead') ? tableCoroinhas.querySelector('thead').outerHTML : '';
+            tableCoroinhas.innerHTML = theadHtml + '<tbody class="divide-y divide-gray-100"></tbody>';
+        }
+
+        const tableCerimoniarios = document.getElementById('table-cerimoniarios');
+        if (tableCerimoniarios) {
+            const theadHtml = tableCerimoniarios.querySelector('thead') ? tableCerimoniarios.querySelector('thead').outerHTML : '';
+            tableCerimoniarios.innerHTML = theadHtml + '<tbody class="divide-y divide-gray-100"></tbody>';
+        }
 
         let latestMesAno = null;
+        let hasRascunho = false;
 
         if (escalas && escalas.length > 0) {
             escalas.forEach(row => {
+                
                 const rowData = row.extras || {};
                 rowData.id = row.id;
                 if (row.data) rowData.dateVal = row.data;
@@ -1524,11 +1631,84 @@ async function carregarEscalas() {
             if (printEl) printEl.innerText = `${mes} de ${ano}`;
         }
 
+        // Empty state check for visitors
+        let emptyMsg = document.getElementById('empty-escala-msg');
+        
+        if (!isAdmin && (!escalas || escalas.length === 0)) {
+            if(tableCoroinhas) tableCoroinhas.parentElement.style.display = 'none';
+            if(tableCerimoniarios) tableCerimoniarios.parentElement.style.display = 'none';
+            const tabBtnCor = document.querySelector('.tab-btn[onclick*="tab-coroinhas"]');
+            if(tabBtnCor) tabBtnCor.style.display = 'none';
+            const tabBtnCer = document.querySelector('.tab-btn[onclick*="tab-cerimoniarios"]');
+            if(tabBtnCer) tabBtnCer.style.display = 'none';
+            
+            if(!emptyMsg) {
+                const msg = document.createElement('div');
+                msg.id = 'empty-escala-msg';
+                msg.className = 'text-center p-8 bg-white rounded-xl shadow-sm border border-slate-100 mb-6';
+                msg.innerHTML = '<p class="text-slate-500 font-semibold text-lg">Nenhuma escala publicada para este mês ainda.</p>';
+                const sectionEscalas = document.getElementById('section-escalas');
+                if(sectionEscalas) sectionEscalas.appendChild(msg);
+            } else {
+                emptyMsg.style.display = 'block';
+            }
+        } else {
+            if(tableCoroinhas) tableCoroinhas.parentElement.style.display = '';
+            if(tableCerimoniarios) tableCerimoniarios.parentElement.style.display = '';
+            const tabBtnCor = document.querySelector('.tab-btn[onclick*="tab-coroinhas"]');
+            if(tabBtnCor) tabBtnCor.style.display = '';
+            const tabBtnCer = document.querySelector('.tab-btn[onclick*="tab-cerimoniarios"]');
+            if(tabBtnCer) tabBtnCer.style.display = '';
+            if(emptyMsg) emptyMsg.style.display = 'none';
+        }
+
+        // Badge & Publish button logic for admin
+        if (isAdmin) {
+            const badge = document.getElementById('badge-status-escala');
+            const btnPublicar = document.getElementById('btn-publicar-mes');
+            
+            if (badge) {
+                badge.textContent = 'Modo Edição (Restrito)';
+                badge.className = 'admin-only ml-2 px-2.5 py-1.5 text-xs font-bold rounded-full no-print bg-purple-100 text-purple-700';
+                badge.style.display = 'inline-block';
+            }
+            if (btnPublicar) {
+                btnPublicar.style.display = 'flex';
+            }
+        } else {
+            const badge = document.getElementById('badge-status-escala');
+            const btnPublicar = document.getElementById('btn-publicar-mes');
+            if (badge) badge.style.display = 'none';
+            if (btnPublicar) btnPublicar.style.display = 'none';
+        }
+
         highlightNextMass();
         ordenarTodasTabelas();
+        
+        // Populate Location Filter for Visitors dynamically
+        if (!isAdmin) {
+            const uniqueLocals = new Set();
+            escalas.forEach(r => { if(r.local && r.local.trim()) uniqueLocals.add(r.local.trim()); });
+            
+            const localFiltro = document.getElementById('filtro-escala-local');
+            if (localFiltro) {
+                const currentVal = localFiltro.value;
+                let html = '<option value="">Todos os Locais</option>';
+                Array.from(uniqueLocals).sort().forEach(loc => {
+                    html += `<option value="${loc}">${loc}</option>`;
+                });
+                localFiltro.innerHTML = html;
+                localFiltro.value = currentVal;
+            }
+        }
+
+        // Render Mobile Cards (Read Only)
+        renderMobileCards(escalas);
     } catch (err) {
         console.error("Erro ao carregar escalas:", err);
         alert("Erro ao carregar escalas: " + err.message);
+    } finally {
+        isRendering = false;
     }
 }
 
@@ -2542,6 +2722,31 @@ function aplicarFiltrosEscala() {
             }
         });
     });
+
+    // Filtro para os Cards Mobile
+    const cards = document.querySelectorAll('.mobile-card');
+    cards.forEach(card => {
+        let matchNome = false;
+        let matchLocal = false;
+        let matchDia = false;
+        let matchHora = false;
+
+        const cNome = card.getAttribute('data-nome') || '';
+        const cLocal = card.getAttribute('data-local') || '';
+        const cDia = card.getAttribute('data-dia') || '';
+        const cHora = card.getAttribute('data-hora') || '';
+
+        if (!nomeTerm || cNome.includes(nomeTerm)) matchNome = true;
+        if (!localTerm || cLocal.includes(localTerm)) matchLocal = true;
+        if (!diaTerm || cDia.includes(diaTerm)) matchDia = true;
+        if (!horaTerm || cHora === horaTerm) matchHora = true;
+
+        if (matchNome && matchLocal && matchDia && matchHora) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
 }
 
 function updateFiltrosEscalaLocais() {
@@ -2559,4 +2764,249 @@ function updateFiltrosEscalaLocais() {
     
     localFiltro.innerHTML = html;
     localFiltro.value = currentVal;
+}
+
+// --- PUBLICAR MÊS ---
+async function publicarMesAtual() {
+    const btn = document.getElementById('btn-publicar-mes');
+    if(!btn) return;
+    
+    if (btn.disabled) return;
+
+    if (!confirm("Isso irá espelhar todas as missas e edições deste mês para a visão do público (Visitantes). Deseja continuar?")) return;
+
+    btn.disabled = true;
+    const btnOriginalHtml = btn.innerHTML;
+    btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Publicando...`;
+
+    // Suspende o autosave temporariamente
+    const previousIsAdmin = isAdmin;
+    isAdmin = false;
+
+    try {
+        const mesVal = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
+        const anoVal = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
+        const meses = { "Janeiro": "01", "Fevereiro": "02", "Março": "03", "Abril": "04", "Maio": "05", "Junho": "06", "Julho": "07", "Agosto": "08", "Setembro": "09", "Outubro": "10", "Novembro": "11", "Dezembro": "12" };
+        const mesNum = meses[mesVal] || "01";
+        const anoNum = anoVal || new Date().getFullYear();
+        
+        const dataInicio = `${anoNum}-${mesNum}-01`;
+        const lastDay = new Date(anoNum, parseInt(mesNum), 0).getDate();
+        const dataFim = `${anoNum}-${mesNum}-${lastDay.toString().padStart(2, '0')}`;
+
+        // 1. Apaga a "vitrine" atual (Deleta todas as linhas onde versao = publicada deste mês)
+        const { error: errDel } = await supabaseClient.from('escalas')
+            .delete()
+            .eq('versao', 'publicada')
+            .gte('data', dataInicio)
+            .lte('data', dataFim);
+        
+        if (errDel) throw errDel;
+
+        // 2. Coleta os dados de edição mais recentes do banco
+        const { data: edicaoRows, error: errFetch } = await supabaseClient.from('escalas')
+            .select('*')
+            .eq('versao', 'edicao')
+            .gte('data', dataInicio)
+            .lte('data', dataFim);
+            
+        if (errFetch) throw errFetch;
+
+        // 3. Clona e insere na "vitrine" (versao = publicada)
+        if (edicaoRows && edicaoRows.length > 0) {
+            const publicadasToInsert = edicaoRows.map(row => {
+                const newRow = { ...row };
+                delete newRow.id; // supabase gerará um novo UUID automaticamente
+                newRow.versao = 'publicada';
+                return newRow;
+            });
+
+            const { error: errIns } = await supabaseClient.from('escalas')
+                .insert(publicadasToInsert);
+                
+            if (errIns) throw errIns;
+        }
+
+        alert("Escala publicada com sucesso!");
+        
+        isAdmin = previousIsAdmin; // Restaura permissão
+        btn.disabled = false;
+        btn.innerHTML = btnOriginalHtml;
+        
+        carregarEscalas(); // Refresh visual
+
+    } catch(err) {
+        console.error(err);
+        alert("Erro ao publicar escala. Verifique o console.");
+        isAdmin = previousIsAdmin;
+        btn.disabled = false;
+        btn.innerHTML = btnOriginalHtml;
+    }
+}
+
+// --- RENDER MOBILE CARDS (VISITANTES/LEITURA) ---
+function renderMobileCards(escalasArray) {
+    const containerCoroinhas = document.getElementById('cards-coroinhas');
+    const containerCerimoniarios = document.getElementById('cards-cerimoniarios');
+    if (!containerCoroinhas || !containerCerimoniarios) return;
+
+    containerCoroinhas.innerHTML = '';
+    containerCerimoniarios.innerHTML = '';
+
+    if (!escalasArray || escalasArray.length === 0) return;
+
+    const sorted = [...escalasArray].sort((a, b) => {
+        if (a.data !== b.data) return (a.data || "").localeCompare(b.data || "");
+        return (a.horario || "").localeCompare(b.horario || "");
+    });
+
+    const formatData = (d) => {
+        if (!d) return '--/--';
+        const parts = d.split('-');
+        if(parts.length === 3) return `${parts[2]}/${parts[1]}`;
+        return d;
+    };
+
+    let htmlCoroinhas = '';
+    let htmlCerimoniarios = '';
+
+    sorted.forEach(row => {
+        const dataStr = formatData(row.data);
+        let dia = '--';
+        if (row.data) {
+            const parts = row.data.split('-');
+            if (parts.length === 3) {
+                const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                dia = diasSemana[dateObj.getDay()];
+            }
+        }
+
+        const hora = row.horario || '--:--';
+        const local = row.local || 'Não definido';
+        const obs = row.observacao || '';
+        
+        const title = `${dia}, ${dataStr} &bull; ${hora}`;
+
+        let obsHtml = '';
+        if (obs.trim() !== '') {
+            let cleanObs = obs.replace(/<br[^>]*>/gi, '').trim();
+            cleanObs = cleanObs.replace(/margin-bottom:\s*4px;?/gi, 'margin-bottom: 0px;');
+            obsHtml = `<div class="mt-2 flex"><span class="bg-amber-100 text-amber-800 text-xs p-1 rounded-full font-medium inline-flex items-center justify-center">${cleanObs}</span></div>`;
+        }
+
+        const buildCard = (servos, type) => {
+            let servosList = '';
+            let nomesBusca = [];
+            let validNamesCount = 0;
+            
+            const isTodosConvocados = row.extras && row.extras.wasGeneral;
+            const isCerimoniarios = type === 'cerimoniarios';
+            const labels = isCerimoniarios ? ["Cruciferário", "Cerimonialista"] : ["Coroinha 1", "Coroinha 2", "Coroinha 3"];
+
+            (servos || []).forEach((nomeObj, idx) => {
+                let nomeStr = '';
+                if (typeof nomeObj === 'object' && nomeObj !== null) {
+                    nomeStr = nomeObj.val || '';
+                } else if (nomeObj !== null && nomeObj !== undefined) {
+                    nomeStr = String(nomeObj);
+                }
+
+                if(nomeStr.trim() !== '') {
+                    validNamesCount++;
+                    nomesBusca.push(nomeStr.toLowerCase());
+                } else {
+                    nomeStr = '-';
+                }
+                
+                const label = labels[idx] || `Servo ${idx+1}`;
+                
+                let renderNames = `<div class="text-sm ${nomeStr === '-' ? 'text-slate-400 font-medium' : 'text-slate-700 font-semibold'} pl-2 border-l-2 border-slate-200"><p>${nomeStr}</p></div>`;
+
+                servosList += `
+                    <div class="mb-2 last:mb-0">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 block">${label}</span>
+                        ${renderNames}
+                    </div>
+                `;
+            });
+            
+            // Renderiza funções adicionais (Sublistas)
+            if (row.extras && row.extras.sublist) {
+                row.extras.sublist.forEach(r => {
+                    const nomeStr = r.val.trim();
+                    if (nomeStr !== '') {
+                        const nomesArray = nomeStr.split(',').map(n => n.trim()).filter(n => n);
+                        const label = r.name || 'Função Adicional';
+                        
+                        validNamesCount += nomesArray.length;
+                        nomesBusca.push(...nomesArray.map(n => n.toLowerCase()));
+
+                        const renderNames = `<div class="text-sm text-slate-700 font-semibold pl-2 border-l-2 border-slate-200">
+                            ${nomesArray.map(n => `<p>${n}</p>`).join('')}
+                        </div>`;
+
+                        servosList += `
+                            <div class="mb-2 last:mb-0 mt-3">
+                                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">${label}</span>
+                                ${renderNames}
+                            </div>
+                        `;
+                    }
+                });
+            }
+
+            if (!servosList) servosList = '<div class="text-sm text-slate-400 py-2">Nenhum servo escalado</div>';
+
+            const nomesBuscaStr = nomesBusca.join(' ');
+            const shouldHide = isTodosConvocados || validNamesCount > 3;
+
+            let servosContainer = '';
+            if (shouldHide) {
+                const summaryText = isTodosConvocados ? "Todos Convocados (Ver lista)" : `${validNamesCount} Servos (Ver lista)`;
+                servosContainer = `
+                    <details class="group bg-slate-50 rounded-xl mt-4 border border-slate-100 overflow-hidden">
+                        <summary class="flex justify-between items-center w-full p-4 text-sm font-medium text-slate-600 cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden hover:bg-slate-100/50 transition-colors outline-none">
+                            <span class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                ${summaryText}
+                            </span>
+                            <svg class="w-4 h-4 text-slate-400 transition-transform duration-200 group-open:rotate-180 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </summary>
+                        <div class="px-4 pb-4 border-t border-slate-200/60 pt-3">
+                            ${servosList}
+                        </div>
+                    </details>
+                `;
+            } else {
+                servosContainer = `
+                    <div class="bg-slate-50 rounded-xl p-4 mt-4 border border-slate-100">
+                        ${servosList}
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="mobile-card bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-4"
+                     data-nome="${nomesBuscaStr}"
+                     data-local="${local.toLowerCase()}"
+                     data-dia="${dia.toLowerCase()}"
+                     data-hora="${hora}">
+                    <h3 class="text-lg font-bold text-slate-800">${title}</h3>
+                    <div class="flex items-center gap-1.5 text-sm text-slate-500 mt-1">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        <span>${local}</span>
+                    </div>
+                    ${obsHtml}
+                    ${servosContainer}
+                </div>
+            `;
+        };
+
+        if (row.coroinhas) htmlCoroinhas += buildCard(row.coroinhas, 'coroinhas');
+        if (row.cerimoniarios) htmlCerimoniarios += buildCard(row.cerimoniarios, 'cerimoniarios');
+    });
+
+    containerCoroinhas.innerHTML = htmlCoroinhas;
+    containerCerimoniarios.innerHTML = htmlCerimoniarios;
 }
