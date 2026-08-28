@@ -1041,6 +1041,7 @@ function applyEvent(btn, eventId) {
         }
     }
     saveData();
+    syncToSupabase();
 }
 
 function handleLocalChange(selectEl) {
@@ -1290,8 +1291,57 @@ function saveData() {
 }
 
 async function manualSave() {
-    if (!isDirty) return;
-    await syncToSupabase();
+    const btn = document.getElementById('fab-manual-save');
+    if (!btn || btn.disabled) return;
+    
+    const originalHtml = btn.innerHTML;
+    
+    // Animação de loading (Spinner)
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Salvando...`;
+
+    // Se houver mudanças pendentes, envia. Senão apenas simula para dar feedback visual.
+    if (isDirty) {
+        await syncToSupabase();
+    } else {
+        await new Promise(r => setTimeout(r, 400));
+    }
+
+    // Feedback de Sucesso (Verdinho)
+    btn.classList.replace('bg-blue-600', 'bg-emerald-500');
+    btn.classList.replace('hover:bg-blue-700', 'hover:bg-emerald-600');
+    btn.innerHTML = `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Salvo!`;
+    
+    showToast("Alterações salvas com sucesso!");
+    
+    // Retorna o botão ao estado original
+    setTimeout(() => {
+        btn.classList.replace('bg-emerald-500', 'bg-blue-600');
+        btn.classList.replace('hover:bg-emerald-600', 'hover:bg-blue-700');
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+    }, 2500);
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-5 right-5 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 transform transition-all translate-y-10 opacity-0 z-50';
+    toast.style.transitionDuration = '300ms';
+    toast.innerHTML = `<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="font-medium text-sm">${message}</span>`;
+    document.body.appendChild(toast);
+    
+    // Animate In
+    setTimeout(() => {
+        toast.classList.remove('translate-y-10', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+    }, 10);
+    
+    // Animate Out
+    setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-10', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 // Autosave instantâneo ao sair da edição
