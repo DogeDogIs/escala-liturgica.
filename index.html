@@ -101,11 +101,11 @@
     <style id="print-styles">
         @media print {
             /* 1. CONFIGURAÇÃO DA PÁGINA E CORES */
-            @page { size: A4 landscape; margin: 5mm; }
+            @page { size: A4 portrait; margin: 5mm; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             body { 
                 background-color: #ffffff !important; 
-                zoom: 0.75; /* Força um encolhimento de 25% no Chrome/Edge para caber mais itens */
+                zoom: 0.65; /* Scale down to fit 1 page */
             }
 
             /* 2. LIMPEZA DE UI E CABEÇALHOS */
@@ -114,7 +114,7 @@
             }
             
             /* Remove espaços do container principal */
-            #main-content-area, .printable-area, .overflow-x-auto, .overflow-y-auto {
+            #main-content-area, .printable-area, .overflow-x-auto, .overflow-y-auto, main {
                 padding: 0 !important;
                 margin: 0 !important;
                 border: none !important;
@@ -147,8 +147,8 @@
                 min-width: 0 !important;
             }
             th, td {
-                padding: 3px 4px !important; /* Reduz padding das células drasticamente */
-                font-size: 10px !important;  /* Diminui a fonte geral da tabela */
+                padding: 3px 4px !important;
+                font-size: 10px !important;
                 line-height: 1.1 !important;
                 min-width: 0 !important;
                 white-space: normal !important;
@@ -166,23 +166,22 @@
                 padding: 2px 6px !important;
                 font-size: 8px !important;
             }
-            .print-header {
-                padding: 10px !important;
+            
+            #pdf-render-area {
+                display: none !important;
             }
-            .print-header img {
-                width: 50px !important;
-                height: 50px !important;
-                margin-bottom: 5px !important;
-            }
-            .print-header h1 {
-                font-size: 18px !important;
-                margin-bottom: 0 !important;
-            }
-            .print-header h2 {
-                font-size: 14px !important;
+            
+            /* Logo header shown ONLY in print */
+            .print-custom-header {
+                display: flex !important;
             }
         }
     </style>
+    <!-- Bibliotecas de Terceiros -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body class="bg-gray-50 flex h-screen overflow-hidden font-sans text-slate-800">
@@ -288,6 +287,17 @@
 
         <!-- SCROLLABLE CONTENT -->
         <main class="flex-1 overflow-y-auto bg-slate-50/50 p-3 md:p-6 lg:p-8" id="main-content-area">
+
+            <!-- Print Header -->
+            <div class="hidden print-custom-header print:flex items-center justify-between mb-4 border-b border-gray-300 pb-2">
+                <div class="flex items-center gap-4">
+                    <img src="logo/logo_coroinhas.jpeg" alt="Logo" class="w-16 h-16 object-contain rounded-lg">
+                    <div>
+                        <h1 class="text-2xl font-bold uppercase tracking-wider" id="print-title-text">ESCALA LITÚRGICA</h1>
+                        <h2 class="text-base text-slate-600">Paróquia Nossa Senhora das Graças</h2>
+                    </div>
+                </div>
+            </div>
 
             <!-- ================= SECTION: ESCALAS ================= -->
             <section id="section-escalas" class="block">
@@ -518,23 +528,19 @@
                     </button>
                     <div class="h-8 w-px bg-gray-200 hidden sm:block"></div>
                     <button
-                        class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg shadow-sm font-medium flex items-center gap-2 transition-colors"
-                        onclick="exportWhatsApp()">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg shadow-sm font-medium flex items-center gap-2 transition-all duration-300"
+                        onclick="exportWhatsApp(this)" id="btn-whats-main">
+                        <svg class="w-5 h-5 transition-transform" fill="currentColor" viewBox="0 0 24 24">
                             <path
                                 d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                         </svg>
-                        WhatsApp
+                        <span id="btn-whats-main-text">WhatsApp</span>
                     </button>
-                    <button
-                        class="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-sm font-medium flex items-center gap-2 transition-colors"
-                        onclick="exportPDF()">
+                    <button onclick="abrirModalExportacao()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm font-medium flex items-center gap-2 transition-colors no-print">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                         </svg>
-                        Exportar PDF
+                        Exportar
                     </button>
             </section> <!-- FIM SECTION ESCALAS -->
 
@@ -785,6 +791,43 @@
         </main>
     </div>
 
+    <!-- MODAL EXPORTAÇÃO -->
+    <div id="modal-exportacao" class="no-print hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in transition-opacity duration-200">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform transition-all">
+            <div class="bg-blue-600 px-6 py-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    Opções de Exportação
+                </h3>
+                <button onclick="fecharModalExportacao()" class="text-blue-100 hover:text-white transition-colors p-1 rounded-full hover:bg-blue-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-3">
+                <button onclick="exportWhatsApp(this)" class="w-full flex items-center gap-4 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-3 rounded-xl font-semibold transition-all duration-300 border border-green-200">
+                    <div class="bg-green-100 p-2 rounded-lg" id="btn-whats-modal-icon"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg></div>
+                    <div class="text-left" id="btn-whats-modal-text">
+                        <div class="text-sm">Copiar para</div>
+                        <div class="text-base">WhatsApp</div>
+                    </div>
+                </button>
+
+
+
+                <button onclick="exportPDF(); fecharModalExportacao();" class="w-full flex items-center gap-4 bg-orange-50 hover:bg-orange-100 text-orange-700 px-4 py-3 rounded-xl font-semibold transition-colors border border-orange-200">
+                    <div class="bg-orange-100 p-2 rounded-lg"><svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg></div>
+                    <div class="text-left">
+                        <div class="text-sm">Gerar PDF ou</div>
+                        <div class="text-base">Imprimir</div>
+                    </div>
+                </button>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 text-center border-t border-gray-100">
+                <button onclick="fecharModalExportacao()" class="text-sm font-semibold text-slate-500 hover:text-slate-700">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL DE NOVO SERVIDOR -->
     <div id="modal-novo-servidor"
         class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
@@ -827,11 +870,27 @@
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
                         <!-- Column 1: Info -->
                         <div class="space-y-5">
-                            <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nome Completo</label>
-                                <input type="text" id="novo-servidor-nome"
-                                    class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-shadow"
-                                    placeholder="Ex: João da Silva">
+                            <div class="flex items-center gap-4">
+                                <div class="flex items-center gap-1">
+                                    <div class="relative w-16 h-16 rounded-full bg-slate-200 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden group cursor-pointer shrink-0" onclick="document.getElementById('novo-servidor-foto-input').click()">
+                                        <img id="novo-servidor-foto-preview" class="w-full h-full object-cover hidden" alt="Foto">
+                                        <div class="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center transition-all">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                        </div>
+                                        <span id="novo-servidor-foto-text" class="text-xs text-slate-400 font-bold group-hover:hidden text-center leading-tight">Add<br>Foto</span>
+                                    </div>
+                                    <button type="button" id="btn-remover-foto" onclick="removerFotoServidor()" class="hidden p-2 text-rose-500 hover:bg-rose-50 rounded-full transition-colors shrink-0" title="Remover Foto">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </div>
+                                <input type="file" id="novo-servidor-foto-input" accept="image/*" class="hidden">
+                                
+                                <div class="flex-1">
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nome Completo</label>
+                                    <input type="text" id="novo-servidor-nome"
+                                        class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-shadow"
+                                        placeholder="Ex: João da Silva">
+                                </div>
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
@@ -1484,6 +1543,28 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL CROPPER -->
+    <div id="modal-cropper" class="hidden fixed inset-0 z-[60] items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800">Ajustar Foto</h2>
+                <button onclick="fecharModalCropper()" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-4 flex-1 bg-black min-h-[300px] flex items-center justify-center">
+                <img id="cropper-image" src="" class="max-w-full max-h-[60vh] object-contain">
+            </div>
+            <div class="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
+                <button onclick="fecharModalCropper()" class="px-5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-slate-700 rounded-xl shadow-sm font-semibold transition-colors text-sm">Cancelar</button>
+                <button onclick="confirmarCorteFoto()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md font-bold transition-all text-sm">Confirmar e Cortar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTAINER PARA RENDERIZAÇÃO DO PDF EMPILHADO -->
+    <div id="pdf-render-area" class="hidden font-sans text-slate-900 bg-white"></div>
 
     <!-- Importe o Supabase via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

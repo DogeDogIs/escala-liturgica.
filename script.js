@@ -446,7 +446,33 @@ async function salvarNovoServidor() {
 
     if (!Array.isArray(sysConfig.nomes)) sysConfig.nomes = [];
 
+
+    let btnSalvarText = document.getElementById('btn-salvar-servidor-text');
+    let originalText = btnSalvarText ? btnSalvarText.innerText : 'Salvar';
+    if(btnSalvarText) btnSalvarText.innerText = 'Salvando...';
+
+    let fotoUrlFinal = document.getElementById('novo-servidor-foto-preview').getAttribute('data-url') || null;
+
+    if (selectedFileBlob) {
+        try {
+            const fileName = 'avatar_' + Date.now() + '_' + Math.floor(Math.random()*1000) + '.webp';
+            const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('avatares').upload(fileName, selectedFileBlob, {
+                contentType: 'image/webp',
+                upsert: true
+            });
+            if (uploadError) {
+                console.error('Erro no upload da foto:', uploadError);
+            } else {
+                const { data: { publicUrl } } = supabaseClient.storage.from('avatares').getPublicUrl(uploadData.path);
+                fotoUrlFinal = publicUrl;
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
     const serverData = {
+        foto_url: fotoUrlFinal,
         nome: nome,
         is_coroinha: funcao === 'coroinha',
         is_cerimoniario: funcao === 'cerimoniario',
@@ -488,11 +514,16 @@ async function salvarNovoServidor() {
         }).eq('id', 1);
         if (error) throw error;
 
+        
+        selectedFileBlob = null;
+        if(btnSalvarText) btnSalvarText.innerText = originalText;
         alert(editingServidorId ? "Servidor atualizado com sucesso!" : "Servidor cadastrado com sucesso!");
         fecharModalServidor();
         aplicarFiltrosServidores(); // Ao invés de apenas renderizar, reaplica filtros
     } catch (err) {
         console.error("Erro ao salvar servidor:", err);
+        
+        if(btnSalvarText) btnSalvarText.innerText = originalText;
         alert("Erro ao salvar no banco de dados.");
     }
 }
@@ -531,6 +562,21 @@ function editarServidor(id) {
     document.getElementById('novo-servidor-autoriza-eventos').checked = !!servidor.autoriza_eventos;
 
     document.getElementById('novo-servidor-observacoes').value = servidor.observacoes || '';
+
+    if (servidor.foto_url) {
+        document.getElementById('novo-servidor-foto-preview').src = servidor.foto_url;
+        document.getElementById('novo-servidor-foto-preview').classList.remove('hidden');
+        document.getElementById('novo-servidor-foto-preview').setAttribute('data-url', servidor.foto_url);
+        document.getElementById('btn-remover-foto').classList.remove('hidden');
+        document.getElementById('novo-servidor-foto-text').classList.add('hidden');
+    } else {
+        document.getElementById('novo-servidor-foto-preview').src = '';
+        document.getElementById('novo-servidor-foto-preview').classList.add('hidden');
+        document.getElementById('novo-servidor-foto-preview').removeAttribute('data-url');
+        document.getElementById('btn-remover-foto').classList.add('hidden');
+        document.getElementById('novo-servidor-foto-text').classList.remove('hidden');
+    }
+    selectedFileBlob = null;
 
     // Checkboxes de indisponibilidade
     const checkboxes = document.querySelectorAll('.cb-dia-indisponivel');
@@ -591,11 +637,24 @@ function renderServidoresCadastrados(listaCustom = null) {
             ? `<span class="text-xs text-red-500 font-medium">Não pode: ${n.dias_indisponiveis.join(', ')}</span>`
             : `<span class="text-xs text-green-600 font-medium">Livre todos os dias</span>`;
 
+        let avatarHtml = '';
+        if (n.foto_url) {
+            avatarHtml = `<img src="${n.foto_url}" class="w-10 h-10 rounded-full object-cover shrink-0 shadow-sm border border-slate-200" alt="">`;
+        } else {
+            const inicial = n.nome.charAt(0).toUpperCase();
+            avatarHtml = `<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200"><span class="text-sm font-bold text-slate-500">${inicial}</span></div>`;
+        }
+
         tbody.innerHTML += `
             <tr class="hover:bg-gray-50/80 transition-colors">
                 <td class="p-4">
-                    <div class="font-bold text-slate-800">${n.nome}</div>
-                    <span class="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${badgeColor}">${funcaoStr}</span>
+                    <div class="flex items-center gap-3">
+                        ${avatarHtml}
+                        <div>
+                            <div class="font-bold text-slate-800">${n.nome}</div>
+                            <span class="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${badgeColor}">${funcaoStr}</span>
+                        </div>
+                    </div>
                 </td>
                 <td class="p-4 text-sm text-slate-600">${n.idade ? n.idade + ' anos' : '-'}</td>
                 <td class="p-4"><div class="flex flex-wrap gap-1">${tagsHtml}</div></td>
@@ -1910,6 +1969,10 @@ function exportPDF() {
     const originalTitle = document.title;
     if (mesAno) document.title = `Escala Litúrgica - ${mesAno}`;
 
+    // Atualizar o título de impressão se existir
+    const printTitle = document.getElementById('print-title-text');
+    if (printTitle) printTitle.innerText = mesAno.toUpperCase();
+
     // Preencher temporariamente inputs vazios com "-" para a impressão
     const nameInputs = document.querySelectorAll('.name-input');
     const emptyInputs = [];
@@ -2319,6 +2382,13 @@ function fecharModalServidor() {
         document.getElementById('novo-servidor-autoriza-eventos').checked = false;
 
         document.getElementById('novo-servidor-observacoes').value = '';
+    document.getElementById('novo-servidor-foto-preview').src = '';
+    document.getElementById('novo-servidor-foto-preview').classList.add('hidden');
+    document.getElementById('novo-servidor-foto-preview').removeAttribute('data-url');
+    document.getElementById('btn-remover-foto').classList.add('hidden');
+    document.getElementById('novo-servidor-foto-text').classList.remove('hidden');
+    selectedFileBlob = null;
+
         document.querySelectorAll('.cb-dia-indisponivel').forEach(cb => cb.checked = false);
     }
 }
@@ -2988,7 +3058,24 @@ function renderMobileCards(escalasArray) {
 
                 const label = labels[idx] || `Servo ${idx + 1}`;
 
-                let renderNames = `<div class="text-sm ${nomeStr === '-' ? 'text-slate-400 font-medium' : 'text-slate-700 font-semibold'} pl-2 border-l-2 border-slate-200"><p>${nomeStr}</p></div>`;
+                
+                let avatarUrl = null;
+                if (nomeStr !== '-' && Array.isArray(sysConfig.nomes)) {
+                    // Tenta achar foto do servo no sysConfig
+                    const sv = sysConfig.nomes.find(n => n.nome.toLowerCase() === nomeStr.toLowerCase());
+                    if (sv && sv.foto_url) avatarUrl = sv.foto_url;
+                }
+                
+                let avatarHtml = '';
+                if (avatarUrl) {
+                    avatarHtml = `<img src="${avatarUrl}" class="w-6 h-6 rounded-full object-cover shrink-0 shadow-sm border border-slate-200" alt="">`;
+                } else if (nomeStr !== '-') {
+                    const inicial = nomeStr.charAt(0).toUpperCase();
+                    avatarHtml = `<div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200"><span class="text-[10px] font-bold text-slate-500">${inicial}</span></div>`;
+                }
+                
+                let renderNames = `<div class="flex items-center gap-2 mt-1">${avatarHtml}<div class="text-sm ${nomeStr === '-' ? 'text-slate-400 font-medium' : 'text-slate-700 font-semibold'}"><p>${nomeStr}</p></div></div>`;
+
 
                 servosList += `
                     <div class="mb-2 last:mb-0">
@@ -3076,4 +3163,154 @@ function renderMobileCards(escalasArray) {
 
     containerCoroinhas.innerHTML = htmlCoroinhas;
     containerCerimoniarios.innerHTML = htmlCerimoniarios;
+}
+
+
+// --- CROPPER LOGIC ---
+let cropperInstance = null;
+let selectedFileBlob = null;
+
+document.getElementById('novo-servidor-foto-input').addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            document.getElementById('cropper-image').src = event.target.result;
+            document.getElementById('modal-cropper').classList.remove('hidden');
+            document.getElementById('modal-cropper').classList.add('flex');
+            
+            if (cropperInstance) {
+                cropperInstance.destroy();
+            }
+            cropperInstance = new Cropper(document.getElementById('cropper-image'), {
+                aspectRatio: 1,
+                viewMode: 2,
+                autoCropArea: 1,
+            });
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+function fecharModalCropper() {
+    document.getElementById('modal-cropper').classList.add('hidden');
+    document.getElementById('modal-cropper').classList.remove('flex');
+    document.getElementById('novo-servidor-foto-input').value = '';
+    if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+    }
+}
+
+async function confirmarCorteFoto() {
+    if (!cropperInstance) return;
+    
+    const canvas = cropperInstance.getCroppedCanvas({
+        width: 256,
+        height: 256,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high',
+    });
+    
+    canvas.toBlob((blob) => {
+        selectedFileBlob = blob;
+        const previewUrl = URL.createObjectURL(blob);
+        document.getElementById('novo-servidor-foto-preview').src = previewUrl;
+        document.getElementById('novo-servidor-foto-preview').classList.remove('hidden');
+        document.getElementById('btn-remover-foto').classList.remove('hidden');
+        document.getElementById('novo-servidor-foto-text').classList.add('hidden');
+        fecharModalCropper();
+    }, 'image/webp', 0.7);
+}
+
+function removerFotoServidor() {
+    document.getElementById('novo-servidor-foto-preview').src = '';
+    document.getElementById('novo-servidor-foto-preview').classList.add('hidden');
+    document.getElementById('novo-servidor-foto-preview').removeAttribute('data-url');
+    document.getElementById('btn-remover-foto').classList.add('hidden');
+    document.getElementById('novo-servidor-foto-text').classList.remove('hidden');
+    selectedFileBlob = null;
+}
+
+// --- FUNÇÕES DE EXPORTAÇÃO (NOVO) ---
+function abrirModalExportacao() {
+    document.getElementById('modal-exportacao').classList.remove('hidden');
+}
+
+function fecharModalExportacao() {
+    document.getElementById('modal-exportacao').classList.add('hidden');
+}
+
+function exportWhatsApp() {
+    const mes = document.getElementById('select-mes').value;
+    const ano = document.getElementById('select-ano').value;
+    const isCoroinhas = document.getElementById('tab-coroinhas').classList.contains('active');
+    const tableId = isCoroinhas ? 'table-coroinhas' : 'table-cerimoniarios';
+    const titulo = isCoroinhas ? 'Coroinhas' : 'Cerimoniários';
+    
+    let text = `*ESCALA LITÚRGICA - ${titulo.toUpperCase()}*\n_${mes} de ${ano}_\n\n`;
+    
+    const tbody = document.querySelector(`#${tableId} tbody`);
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr.main-row');
+    
+    rows.forEach(tr => {
+        const dateCell = tr.querySelector('.date-cell div');
+        if (!dateCell) return;
+        const dataStr = dateCell.innerText.trim();
+        const diaSemana = tr.querySelector('.day-cell').innerText.trim();
+        const local = tr.querySelector('.col-local select') ? tr.querySelector('.col-local select').value : '';
+        const hora = tr.querySelector('.time-input') ? tr.querySelector('.time-input').value : '';
+        
+        text += `📅 *${dataStr} - ${diaSemana}*\n`;
+        text += `⛪ ${local} - ${hora}\n`;
+        
+        const nameCells = Array.from(tr.querySelectorAll('td')).slice(4, -2);
+        let roleIndex = 1;
+        nameCells.forEach((td) => {
+            let val = '';
+            const input = td.querySelector('.name-input');
+            const divCont = td.querySelector('div[contenteditable]');
+            if (input) val = input.value;
+            else if (divCont) {
+                val = Array.from(divCont.querySelectorAll('.event-badge')).map(b => b.innerText.trim()).join(', ');
+            }
+            if (val && val.trim() !== '' && val.trim() !== '-') {
+                let funcLabel = isCoroinhas ? `Função ${roleIndex}` : (roleIndex === 1 ? 'Cruciferário' : 'Cerimonialista');
+                text += `• ${funcLabel}: ${val}\n`;
+            }
+            roleIndex++;
+        });
+        
+        const sublist = tr.nextElementSibling;
+        if (sublist && sublist.classList.contains('sublist-row')) {
+            const subs = sublist.querySelectorAll('.role-item');
+            subs.forEach(s => {
+                const funcName = s.querySelector('input[type="text"]').value || 'Extra';
+                const sVal = s.querySelector('.name-input').value;
+                if (sVal && sVal.trim() !== '' && sVal.trim() !== '-') {
+                    text += `• ${funcName}: ${sVal}\n`;
+                }
+            });
+        }
+        text += `\n`;
+    });
+    
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Copiado para a área de transferência! Cole no WhatsApp.');
+        fecharModalExportacao();
+    }).catch(err => {
+        alert('Erro ao copiar: ' + err);
+    });
+}
+
+async function exportPNG() {
+    fecharModalExportacao();
+    
+    const header = document.querySelector('.print-custom-header');
+    if (header) {
+        header.classList.remove('hidden');
+        header.classList.add('flex');
+        mainArea.style.height = oldHeight;
+    }
 }
