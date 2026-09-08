@@ -639,7 +639,7 @@ function renderServidoresCadastrados(listaCustom = null) {
 
         let avatarHtml = '';
         if (n.foto_url) {
-            avatarHtml = `<img src="${n.foto_url}" class="w-10 h-10 rounded-full object-cover shrink-0 shadow-sm border border-slate-200" alt="">`;
+            avatarHtml = `<img src="${n.foto_url}" onclick="abrirModalFoto('${n.foto_url}')" class="w-10 h-10 rounded-full object-cover shrink-0 shadow-sm border border-slate-200 cursor-pointer hover:opacity-80 hover:ring-2 hover:ring-blue-400 transition-all" alt="Foto do perfil" title="Ver foto">`;
         } else {
             const inicial = n.nome.charAt(0).toUpperCase();
             avatarHtml = `<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200"><span class="text-sm font-bold text-slate-500">${inicial}</span></div>`;
@@ -3312,5 +3312,41 @@ async function exportPNG() {
         header.classList.remove('hidden');
         header.classList.add('flex');
         mainArea.style.height = oldHeight;
+    }
+}
+
+function abrirModalFoto(url) {
+    if (!url) return;
+    const modal = document.getElementById('modal-view-foto');
+    const img = document.getElementById('view-foto-img');
+    const content = document.getElementById('modal-view-foto-content');
+    if (modal && img && content) {
+        img.src = url;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        // Timeout para permitir a transição do CSS
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.classList.add('opacity-100');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }, 10);
+    }
+}
+
+function fecharModalFoto() {
+    const modal = document.getElementById('modal-view-foto');
+    const content = document.getElementById('modal-view-foto-content');
+    if (modal && content) {
+        modal.classList.remove('opacity-100');
+        modal.classList.add('opacity-0');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
     }
 }

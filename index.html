@@ -1543,6 +1543,20 @@
             </div>
         </div>
     </div>
+    <!-- MODAL VIEW FOTO -->
+    <div id="modal-view-foto" class="hidden fixed inset-0 z-[70] items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 transition-opacity duration-300 opacity-0" onclick="fecharModalFoto()">
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()" id="modal-view-foto-content">
+            <div class="p-3 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800">Foto de Perfil</h2>
+                <button onclick="fecharModalFoto()" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-4 flex items-center justify-center bg-slate-100 min-h-[300px]">
+                <img id="view-foto-img" src="" class="max-w-full max-h-[70vh] object-contain rounded-lg shadow-sm">
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL CROPPER -->
     <div id="modal-cropper" class="hidden fixed inset-0 z-[60] items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
