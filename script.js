@@ -411,12 +411,22 @@ function generateUUID() {
     });
 }
 
+function formatarDataBR(dataStr) {
+    if (!dataStr) return 'Não informada';
+    const partes = String(dataStr).split('T')[0].split('-');
+    if (partes.length === 3) {
+        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+    return dataStr;
+}
+
 async function salvarNovoServidor() {
     const nome = document.getElementById('novo-servidor-nome').value.trim();
     const dataNascimento = document.getElementById('novo-servidor-data-nascimento').value;
     const idadeStr = document.getElementById('novo-servidor-idade').value;
     const funcao = document.getElementById('novo-servidor-funcao').value;
     const tags = document.getElementById('novo-servidor-tags').value;
+    const dataInvestidura = document.getElementById('novo-servidor-data-investidura').value || null;
 
     const responsavelNome = document.getElementById('novo-servidor-responsavel').value.trim();
     const responsavelTel = document.getElementById('novo-servidor-tel-responsavel').value.trim();
@@ -478,6 +488,7 @@ async function salvarNovoServidor() {
         is_cerimoniario: funcao === 'cerimoniario',
         data_nascimento: dataNascimento || null,
         idade: dataNascimento ? calcularIdadeNumber(dataNascimento) : (idadeStr ? parseInt(idadeStr) : null),
+        data_investidura: dataInvestidura,
         tags: tagsArray,
         dias_indisponiveis: diasIndisponiveis,
         responsavel_nome: responsavelNome,
@@ -549,6 +560,7 @@ function editarServidor(id) {
 
     document.getElementById('novo-servidor-funcao').value = servidor.is_cerimoniario ? 'cerimoniario' : 'coroinha';
     document.getElementById('novo-servidor-tags').value = servidor.tags ? servidor.tags.join(', ') : '';
+    document.getElementById('novo-servidor-data-investidura').value = servidor.data_investidura || '';
 
     document.getElementById('novo-servidor-responsavel').value = servidor.responsavel_nome || '';
     document.getElementById('novo-servidor-tel-responsavel').value = servidor.responsavel_telefone || '';
@@ -652,7 +664,10 @@ function renderServidoresCadastrados(listaCustom = null) {
                         ${avatarHtml}
                         <div>
                             <div class="font-bold text-slate-800">${n.nome}</div>
-                            <span class="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${badgeColor}">${funcaoStr}</span>
+                            <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${badgeColor}">${funcaoStr}</span>
+                                ${n.data_investidura ? `<span class="inline-block px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-600 border border-slate-200">Investidura: ${formatarDataBR(n.data_investidura)}</span>` : ''}
+                            </div>
                         </div>
                     </div>
                 </td>
@@ -2370,6 +2385,7 @@ function fecharModalServidor() {
         document.getElementById('novo-servidor-data-nascimento').value = '';
         document.getElementById('novo-servidor-idade').value = '';
         document.getElementById('novo-servidor-tags').value = '';
+        document.getElementById('novo-servidor-data-investidura').value = '';
         document.getElementById('novo-servidor-responsavel').value = '';
         document.getElementById('novo-servidor-tel-responsavel').value = '';
         document.getElementById('novo-servidor-tel-proprio').value = '';
@@ -3349,4 +3365,253 @@ function fecharModalFoto() {
             modal.classList.remove('flex');
         }, 300);
     }
+}
+
+// ====== IMPRESSÃO DE SERVIDORES ======
+function toggleDropdownServidores(event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    const dropdown = document.getElementById('dropdown-imprimir-servidores');
+    dropdown.classList.toggle('show');
+}
+
+// Fechar o dropdown ao clicar fora
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('dropdown-imprimir-servidores');
+    if (dropdown && dropdown.classList.contains('show')) {
+        if (!e.target.closest('#dropdown-imprimir-servidores') && !e.target.closest('button[onclick*="toggleDropdownServidores"]')) {
+            dropdown.classList.remove('show');
+        }
+    }
+});
+
+function imprimirServidores(tipo) {
+    // 1. Fechar o dropdown
+    document.getElementById('dropdown-imprimir-servidores').classList.remove('show');
+
+    const printArea = document.getElementById('print-area-servidores');
+    if (!printArea) return;
+    printArea.innerHTML = ''; // Limpar area
+
+    // 2. Obter servidores e ordenar por nome
+    let servidores = Array.isArray(sysConfig.nomes) ? [...sysConfig.nomes] : [];
+    servidores.sort((a, b) => a.nome.localeCompare(b.nome));
+
+    // 3. Renderizar com base no tipo
+    if (tipo === 'presenca' || tipo === 'viagem') {
+        let isViagem = tipo === 'viagem';
+        let tituloHead = isViagem ? 'Controle p/ Viagens Externas' : 'Lista de Presença';
+        let headerPadding = isViagem ? 'p-4' : 'p-8';
+        let headerMb = isViagem ? 'mb-4 pb-2' : 'mb-8 pb-4';
+
+        let headerHtml = `
+            <div class="${headerPadding} font-sans">
+                <div class="text-center ${headerMb} border-b-2 border-slate-800">
+                    <h1 class="text-2xl font-bold uppercase tracking-widest text-slate-900">${tituloHead}</h1>
+                    <div class="mt-3 flex items-center justify-center gap-6 text-sm font-medium text-slate-700">
+                        <span>Evento / Viagem: _________________________________________</span>
+                        <span>Data: ___/___/______</span>
+                    </div>
+                </div>
+        `;
+
+        const renderTable = (lista, tituloTabela) => {
+            if (lista.length === 0) return '';
+            
+            let thHtml = '';
+            if (isViagem) {
+                const lineHtml = '<div style="border-bottom: 2px solid #475569; width: 75%; margin: 6px auto 2px auto; height: 16px;"></div>';
+                thHtml = `
+                    <th class="p-2 text-sm font-bold text-slate-700 border border-slate-300 text-center align-middle w-[11%]">${lineHtml}</th>
+                    <th class="p-2 text-sm font-bold text-slate-700 border border-slate-300 text-center align-middle w-[11%]">${lineHtml}</th>
+                    <th class="p-2 text-sm font-bold text-slate-700 border border-slate-300 text-center align-middle w-[11%]">${lineHtml}</th>
+                    <th class="p-2 text-sm font-bold text-slate-700 border border-slate-300 text-center align-middle w-[11%]">${lineHtml}</th>
+                    <th class="p-2 text-sm font-bold text-slate-700 border border-slate-300 w-[20%] text-center align-middle">Observações</th>
+                `;
+            } else {
+                thHtml = `
+                    <th class="p-3 text-sm font-bold text-slate-700 border border-slate-300 w-[18%] align-middle">Função</th>
+                    <th class="p-3 text-sm font-bold text-slate-700 border border-slate-300 w-[42%] align-middle">Assinatura / Visto</th>
+                `;
+            }
+
+            let thead = `
+                <div class="${isViagem ? 'mb-4' : 'mb-6'}">
+                    <h2 class="${isViagem ? 'text-lg p-2' : 'text-xl p-3'} font-bold text-slate-800 uppercase bg-slate-100 mb-2 border border-slate-300 border-b-0">${tituloTabela}</h2>
+                    <table class="w-full text-left border-collapse table-fixed">
+                        <thead>
+                            <tr class="bg-slate-50 border border-slate-300">
+                                <th class="${isViagem ? 'p-2 w-[36%]' : 'p-3 w-[40%]'} text-sm font-bold text-slate-700 border border-slate-300 align-middle">Nome do Servidor</th>
+                                ${thHtml}
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            let tbody = lista.map(s => {
+                const funcao = s.is_coroinha ? 'Coroinha' : (s.is_cerimoniario ? 'Cerimoniário' : 'Outro');
+                
+                let tdHtml = '';
+                if (isViagem) {
+                    const checkHtml = '<div class="w-5 h-5 border-2 border-slate-800 rounded-sm mx-auto"></div>';
+                    tdHtml = `
+                        <td class="p-2.5 border border-slate-300 align-middle">${checkHtml}</td>
+                        <td class="p-2.5 border border-slate-300 align-middle">${checkHtml}</td>
+                        <td class="p-2.5 border border-slate-300 align-middle">${checkHtml}</td>
+                        <td class="p-2.5 border border-slate-300 align-middle">${checkHtml}</td>
+                        <td class="p-2.5 border border-slate-300 align-middle"></td>
+                    `;
+                } else {
+                    tdHtml = `
+                        <td class="p-3 border border-slate-300 text-base text-slate-600 align-middle">${funcao}</td>
+                        <td class="p-3 border border-slate-300 align-middle"></td>
+                    `;
+                }
+
+                return `
+                    <tr>
+                        <td class="${isViagem ? 'p-2.5' : 'p-3'} border border-slate-300 text-base font-medium text-slate-800 break-words align-middle">${s.nome}</td>
+                        ${tdHtml}
+                    </tr>
+                `;
+            }).join('');
+
+            return thead + tbody + `</tbody></table></div>`;
+        };
+
+        const listaCoroinhas = servidores.filter(s => s.is_coroinha);
+        const listaCerimoniarios = servidores.filter(s => s.is_cerimoniario);
+
+        let finalHtml = headerHtml;
+        
+        if (listaCoroinhas.length > 0) {
+            finalHtml += renderTable(listaCoroinhas, 'Coroinhas');
+        }
+
+        if (listaCerimoniarios.length > 0) {
+            if (listaCoroinhas.length > 0) {
+                // Quebra de página obrigatória entre seções (Cerimoniários em folha separada)
+                finalHtml += `<div class="break-before-page" style="break-before: page; page-break-before: always; display: block; height: 0;"></div>`;
+            }
+            finalHtml += renderTable(listaCerimoniarios, 'Cerimoniários');
+        }
+
+        finalHtml += `</div>`;
+        printArea.innerHTML = finalHtml;
+
+    } else {
+        // Layout Detalhado (Coroinhas, Cerimoniarios ou Todos)
+        const renderServidorCard = (s) => {
+            const idade = calcularIdadeNumber(s.data_nascimento);
+            const idadeText = idade !== null ? `${idade} anos` : 'Idade não informada';
+            const investidura = s.data_investidura ? formatarDataBR(s.data_investidura) : 'Não informada';
+            const responsavel = s.responsavel_nome || s.nome_responsavel || 'Não informado';
+            const telResponsavel = s.responsavel_telefone || s.telefone_responsavel || s.tel_responsavel || '';
+            const telRespText = telResponsavel ? telResponsavel : 'Não informado';
+            
+            let endereco = [];
+            if (s.endereco_rua) endereco.push(s.endereco_rua);
+            if (s.endereco_bairro) endereco.push(s.endereco_bairro);
+            const enderecoText = endereco.length > 0 ? endereco.join(', ') : 'Endereço não informado';
+
+            let obsHtml = `<span class="text-slate-500">Nenhuma observação.</span>`;
+            if (s.observacoes && s.observacoes.trim() !== '') {
+                obsHtml = `<span class="text-amber-700 italic font-medium flex items-center inline-flex gap-1">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <span>${s.observacoes}</span>
+                </span>`;
+            }
+
+            let avatarHtml = '';
+            if (s.foto_url) {
+                avatarHtml = `<img src="${s.foto_url}" class="w-16 h-16 rounded-full object-cover shrink-0 border border-slate-200">`;
+            } else {
+                const inicial = s.nome ? s.nome.charAt(0).toUpperCase() : '?';
+                avatarHtml = `<div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200"><span class="text-2xl font-bold text-slate-500">${inicial}</span></div>`;
+            }
+
+            return `
+                <div class="py-4 border-b border-slate-200 break-inside-avoid flex items-center gap-6">
+                    ${avatarHtml}
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-slate-900 tracking-tight">${s.nome}</h3>
+                        <div class="mt-2 text-sm text-slate-600 space-y-1">
+                            <p>
+                                <span class="font-semibold text-slate-700">Responsável:</span> ${responsavel} 
+                                <span class="mx-2 text-slate-300">|</span> 
+                                <span class="font-semibold text-slate-700">Tel. Responsável:</span> ${telRespText} 
+                                <span class="mx-2 text-slate-300">|</span> 
+                                <span class="font-semibold text-slate-700">Idade:</span> ${idadeText}
+                            </p>
+                            <p>
+                                <span class="font-semibold text-slate-700">Investidura:</span> ${investidura}
+                                <span class="mx-2 text-slate-300">|</span>
+                                <span class="font-semibold text-slate-700">Endereço:</span> ${enderecoText}
+                                ${s.servidor_telefone ? ` <span class="mx-2 text-slate-300">|</span> <span class="font-semibold text-slate-700">Tel. Próprio:</span> ${s.servidor_telefone}` : ''}
+                            </p>
+                            <p class="mt-1"><span class="font-semibold text-slate-700">Saúde/Observações:</span> ${obsHtml}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        let htmlFinal = `<div class="p-8 font-sans">`;
+        
+        let titulo = '';
+        if (tipo === 'coroinhas') titulo = 'Relatório Detalhado: Coroinhas';
+        if (tipo === 'cerimoniarios') titulo = 'Relatório Detalhado: Cerimoniários';
+        if (tipo === 'todos') titulo = 'Relatório Detalhado: Todos os Servidores';
+
+        htmlFinal += `
+            <div class="text-center mb-8 border-b-2 border-slate-800 pb-4">
+                <h1 class="text-2xl font-bold uppercase tracking-widest text-slate-900">${titulo}</h1>
+                <p class="text-sm text-slate-500 mt-2">Gerado em: ${new Date().toLocaleDateString('pt-BR')}</p>
+            </div>
+        `;
+
+        if (tipo === 'coroinhas' || tipo === 'todos') {
+            const listaCoroinhas = servidores.filter(s => s.is_coroinha);
+            if (tipo === 'todos') htmlFinal += `<h2 class="text-lg font-bold text-slate-800 uppercase bg-slate-100 p-2 mt-6 mb-2">Coroinhas</h2>`;
+            if (listaCoroinhas.length > 0) {
+                htmlFinal += listaCoroinhas.map(renderServidorCard).join('');
+            } else {
+                htmlFinal += `<p class="text-sm text-slate-500 italic py-4">Nenhum coroinha cadastrado.</p>`;
+            }
+        }
+
+        if (tipo === 'cerimoniarios' || tipo === 'todos') {
+            const listaCerimoniarios = servidores.filter(s => s.is_cerimoniario);
+            if (tipo === 'todos') htmlFinal += `<h2 class="text-lg font-bold text-slate-800 uppercase bg-slate-100 p-2 mt-8 mb-2 break-before-auto break-inside-avoid">Cerimoniários</h2>`;
+            if (listaCerimoniarios.length > 0) {
+                htmlFinal += listaCerimoniarios.map(renderServidorCard).join('');
+            } else {
+                htmlFinal += `<p class="text-sm text-slate-500 italic py-4">Nenhum cerimoniário cadastrado.</p>`;
+            }
+        }
+
+        htmlFinal += `</div>`;
+        printArea.innerHTML = htmlFinal;
+    }
+
+    // 4. Acionar a impressão com um leve delay para garantir a renderização do DOM
+    setTimeout(() => {
+        document.body.classList.add('print-mode-servidores');
+        window.print();
+        
+        // 5. Limpar após impressão
+        const clearArea = () => {
+            if (printArea.innerHTML !== '') printArea.innerHTML = '';
+            document.body.classList.remove('print-mode-servidores');
+        };
+        
+        window.addEventListener('afterprint', function limpaArea() {
+            clearArea();
+            window.removeEventListener('afterprint', limpaArea);
+        });
+        
+        // Fallback para navegadores que não disparam afterprint confiavelmente
+        setTimeout(clearArea, 5000);
+    }, 250);
 }

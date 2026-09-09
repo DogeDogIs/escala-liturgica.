@@ -153,6 +153,30 @@
                 min-width: 0 !important;
                 white-space: normal !important;
             }
+
+            /* EXCEÇÃO: LAYOUT ESPAÇOSO PARA SERVIDORES (Lista de Presença/Viagem) */
+            body.print-mode-servidores {
+                zoom: 1 !important; /* Remove o zoom out extremo, mas mantém proporção real da página A4 */
+            }
+            body.print-mode-servidores #print-area-servidores table {
+                table-layout: fixed !important;
+                width: 100% !important;
+            }
+            body.print-mode-servidores #print-area-servidores th,
+            body.print-mode-servidores #print-area-servidores td {
+                padding: 0.6rem 0.75rem !important; /* Espaço bom para caneta e marcações */
+                font-size: 0.875rem !important; /* text-sm */
+                line-height: 1.3 !important;
+            }
+            body.print-mode-servidores #print-area-servidores td.text-xl {
+                font-size: 1rem !important; /* Volta os nomes de text-xl para text-base */
+            }
+            .break-before-page {
+                break-before: page !important;
+                page-break-before: always !important;
+                display: block !important;
+                height: 0 !important;
+            }
             tr, .main-row, .sublist-row { 
                 break-inside: avoid !important; 
                 page-break-inside: avoid !important; 
@@ -546,113 +570,140 @@
 
             <!-- ================= SECTION: SERVIDORES ================= -->
             <section id="section-servidores" class="hidden animate-fade-in">
-                <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
-                                </path>
-                            </svg>
+                <!-- CONTEÚDO VISUAL (Oculto na impressão) -->
+                <div class="no-print">
+                    <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Gerenciar Servidores</h1>
+                                <p class="text-sm text-slate-500 mt-1">Lista administrativa de coroinhas e cerimoniários.
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Gerenciar Servidores</h1>
-                            <p class="text-sm text-slate-500 mt-1">Lista administrativa de coroinhas e cerimoniários.
-                            </p>
+                        <div class="flex items-center gap-3 self-start sm:self-auto">
+                            <!-- Dropdown Imprimir -->
+                            <div class="relative inline-block text-left">
+                                <button onclick="toggleDropdownServidores(event)" class="px-4 py-2.5 bg-white border border-gray-200 text-slate-700 hover:bg-slate-50 rounded-lg shadow-sm font-semibold flex items-center gap-2 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                    Imprimir
+                                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+                                <div id="dropdown-imprimir-servidores" class="dropdown-menu">
+                                    <div class="dropdown-header">Relatórios Detalhados</div>
+                                    <button onclick="imprimirServidores('coroinhas')" class="dropdown-item">Imprimir Coroinhas</button>
+                                    <button onclick="imprimirServidores('cerimoniarios')" class="dropdown-item">Imprimir Cerimoniários</button>
+                                    <button onclick="imprimirServidores('todos')" class="dropdown-item">Imprimir Todos</button>
+                                    <hr>
+                                    <div class="dropdown-header">Listas Rápidas</div>
+                                    <button onclick="imprimirServidores('presenca')" class="dropdown-item">Lista de Presença Simples</button>
+                                    <button onclick="imprimirServidores('viagem')" class="dropdown-item">Controle p/ Viagens Externas</button>
+                                </div>
+                            </div>
+                            
+                            <button onclick="abrirModalServidor()"
+                                class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm font-semibold flex items-center gap-2 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                                    </path>
+                                </svg>
+                                Novo Servidor
+                            </button>
                         </div>
                     </div>
-                    <button onclick="abrirModalServidor()"
-                        class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm font-semibold flex items-center gap-2 transition-colors self-start sm:self-auto">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
-                            </path>
-                        </svg>
-                        Novo Servidor
-                    </button>
-                </div>
 
-                <!-- CARD DE FILTROS DE SERVIDORES -->
-                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-200 mb-6 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                            </svg>
-                            Filtros de Pesquisa
-                        </h3>
-                        <button onclick="limparFiltrosServidores()" class="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-1">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                            Limpar Filtros
-                        </button>
+                    <!-- CARD DE FILTROS DE SERVIDORES -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-200 mb-6 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                                </svg>
+                                Filtros de Pesquisa
+                            </h3>
+                            <button onclick="limparFiltrosServidores()" class="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                Limpar Filtros
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                            <!-- Buscar por Nome -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Nome</label>
+                                <input type="text" id="filtro-servidor-nome" oninput="aplicarFiltrosServidores()" placeholder="Buscar por nome..." class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
+                            </div>
+                            <!-- Função (Coroinha/Cerimoniário) -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Função</label>
+                                <select id="filtro-servidor-funcao" onchange="aplicarFiltrosServidores()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
+                                    <option value="">Todas as Funções</option>
+                                    <option value="coroinha">Coroinha</option>
+                                    <option value="cerimoniario">Cerimoniário</option>
+                                </select>
+                            </div>
+                            <!-- Buscar por Tag -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Tag / Especialidade</label>
+                                <input type="text" id="filtro-servidor-tag" oninput="aplicarFiltrosServidores()" placeholder="Ex: Turíbulo, Naveta..." class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
+                            </div>
+                            <!-- Faixa de Idade -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Idade</label>
+                                <select id="filtro-servidor-idade" onchange="aplicarFiltrosServidores()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
+                                    <option value="">Todas as Idades</option>
+                                    <option value="0-12">Até 12 anos</option>
+                                    <option value="13-17">13 a 17 anos</option>
+                                    <option value="18+">18+ anos</option>
+                                </select>
+                            </div>
+                            <!-- Indisponibilidade -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Indisponibilidade</label>
+                                <select id="filtro-servidor-indisponibilidade" onchange="aplicarFiltrosServidores()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
+                                    <option value="">Todos</option>
+                                    <option value="livre">Totalmente Livres</option>
+                                    <option value="indisponivel">Com Indisponibilidade</option>
+                                    <option value="Segunda-feira">Indisponível Segunda</option>
+                                    <option value="Terça-feira">Indisponível Terça</option>
+                                    <option value="Quarta-feira">Indisponível Quarta</option>
+                                    <option value="Quinta-feira">Indisponível Quinta</option>
+                                    <option value="Sexta-feira">Indisponível Sexta</option>
+                                    <option value="Sábado">Indisponível Sábado</option>
+                                    <option value="Domingo">Indisponível Domingo</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                        <!-- Buscar por Nome -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1">Nome</label>
-                            <input type="text" id="filtro-servidor-nome" oninput="aplicarFiltrosServidores()" placeholder="Buscar por nome..." class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
-                        </div>
-                        <!-- Função (Coroinha/Cerimoniário) -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1">Função</label>
-                            <select id="filtro-servidor-funcao" onchange="aplicarFiltrosServidores()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
-                                <option value="">Todas as Funções</option>
-                                <option value="coroinha">Coroinha</option>
-                                <option value="cerimoniario">Cerimoniário</option>
-                            </select>
-                        </div>
-                        <!-- Buscar por Tag -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1">Tag / Especialidade</label>
-                            <input type="text" id="filtro-servidor-tag" oninput="aplicarFiltrosServidores()" placeholder="Ex: Turíbulo, Naveta..." class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
-                        </div>
-                        <!-- Faixa de Idade -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1">Idade</label>
-                            <select id="filtro-servidor-idade" onchange="aplicarFiltrosServidores()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
-                                <option value="">Todas as Idades</option>
-                                <option value="0-12">Até 12 anos</option>
-                                <option value="13-17">13 a 17 anos</option>
-                                <option value="18+">18+ anos</option>
-                            </select>
-                        </div>
-                        <!-- Indisponibilidade -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1">Indisponibilidade</label>
-                            <select id="filtro-servidor-indisponibilidade" onchange="aplicarFiltrosServidores()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
-                                <option value="">Todos</option>
-                                <option value="livre">Totalmente Livres</option>
-                                <option value="indisponivel">Com Indisponibilidade</option>
-                                <option value="Segunda-feira">Indisponível Segunda</option>
-                                <option value="Terça-feira">Indisponível Terça</option>
-                                <option value="Quarta-feira">Indisponível Quarta</option>
-                                <option value="Quinta-feira">Indisponível Quinta</option>
-                                <option value="Sexta-feira">Indisponível Sexta</option>
-                                <option value="Sábado">Indisponível Sábado</option>
-                                <option value="Domingo">Indisponível Domingo</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-sm min-w-max">
-                            <thead>
-                                <tr
-                                    class="bg-slate-50 text-slate-600 uppercase text-xs font-bold tracking-wider border-b border-gray-200">
-                                    <th class="p-4">Nome & Função</th>
-                                    <th class="p-4">Idade</th>
-                                    <th class="p-4">Tags</th>
-                                    <th class="p-4">Indisponibilidade</th>
-                                    <th class="p-4 text-center">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="table-servidores-body" class="divide-y divide-gray-100">
-                                <!-- Servidores carregados via JS -->
-                            </tbody>
-                        </table>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm min-w-max">
+                                <thead>
+                                    <tr
+                                        class="bg-slate-50 text-slate-600 uppercase text-xs font-bold tracking-wider border-b border-gray-200">
+                                        <th class="p-4">Nome & Função</th>
+                                        <th class="p-4">Idade</th>
+                                        <th class="p-4">Tags</th>
+                                        <th class="p-4">Indisponibilidade</th>
+                                        <th class="p-4 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-servidores-body" class="divide-y divide-gray-100">
+                                    <!-- Servidores carregados via JS -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                </div> <!-- FIM CONTEÚDO VISUAL -->
+
+                <!-- ÁREA DE IMPRESSÃO (Visível apenas na impressão) -->
+                <div id="print-area-servidores" class="hidden print:block bg-white w-full"></div>
             </section> <!-- FIM SECTION SERVIDORES -->
 
             <!-- ================= SECTION: CONFIGURAÇÕES ================= -->
@@ -919,6 +970,11 @@
                                 <input type="text" id="novo-servidor-tags"
                                     class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-shadow"
                                     placeholder="Ex: Turíbulo, Naveta (separado por vírgula)">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Data de Investidura</label>
+                                <input type="date" id="novo-servidor-data-investidura"
+                                    class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-shadow bg-white text-slate-700">
                             </div>
                         </div>
 
