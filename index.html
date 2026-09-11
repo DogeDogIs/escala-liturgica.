@@ -47,7 +47,6 @@
             .autocomplete-list.show { @apply block; }
             .autocomplete-list li { @apply p-2.5 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-600 transition-colors border-b border-gray-50 last:border-0; }
 
-            /* Efeitos Visuais Tabela */
             .linha-destaque { @apply bg-blue-100/70 ring-2 ring-blue-500 ring-inset transition-all duration-700 !important; }
 
             /* Dual DOM Strategy for Mobile Cards vs Tables */
@@ -93,28 +92,57 @@
     </style>
     <style>
         @keyframes slideUpFade {
-            0% { transform: translate(-50%, 100%); opacity: 0; }
-            100% { transform: translate(-50%, 0); opacity: 1; }
+            0% {
+                transform: translate(-50%, 100%);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translate(-50%, 0);
+                opacity: 1;
+            }
         }
-        .animate-slide-up { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        .animate-slide-up {
+            animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
     </style>
     <style id="print-styles">
         @media print {
+
             /* 1. CONFIGURAÇÃO DA PÁGINA E CORES */
-            @page { size: A4 portrait; margin: 5mm; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            body { 
-                background-color: #ffffff !important; 
-                zoom: 0.65; /* Scale down to fit 1 page */
+            @page {
+                size: A4 portrait;
+                margin: 2mm;
+            }
+
+            /* Margem reduzida de 5mm para 3mm */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            body {
+                background-color: #ffffff !important;
+                /* Removido zoom: 0.73 para evitar o bug visual nas bordas no PDF */
             }
 
             /* 2. LIMPEZA DE UI E CABEÇALHOS */
-            button, aside, header, .actions-cell, .no-print, .sidebar { 
-                display: none !important; 
+            button,
+            aside,
+            header,
+            .actions-cell,
+            .no-print,
+            .sidebar {
+                display: none !important;
             }
-            
+
             /* Remove espaços do container principal */
-            #main-content-area, .printable-area, .overflow-x-auto, .overflow-y-auto, main {
+            #main-content-area,
+            .printable-area,
+            .overflow-x-auto,
+            .overflow-y-auto,
+            main {
                 padding: 0 !important;
                 margin: 0 !important;
                 border: none !important;
@@ -122,8 +150,47 @@
                 overflow: visible !important;
             }
 
+            /* Espremer cabeçalhos e títulos para salvar muito espaço vertical */
+            .print-custom-header {
+                margin-bottom: 2px !important;
+                padding-bottom: 2px !important;
+            }
+
+            .print-custom-header img {
+                width: 32px !important;
+                height: 32px !important;
+            }
+
+            .print-custom-header h1 {
+                font-size: 16px !important;
+                margin: 0 !important;
+            }
+
+            .print-custom-header h2 {
+                font-size: 12px !important;
+                margin: 0 !important;
+            }
+
+            /* Reduzir o enorme padding (p-6) no título "Coroinhas" */
+            .tab-content>div:first-child {
+                padding: 4px 0 !important;
+                border: none !important;
+                min-height: 0 !important;
+            }
+
+            .tab-content>div:first-child h3 {
+                font-size: 14px !important;
+                margin: 0 !important;
+            }
+
+            .tab-content>div:first-child .w-2.h-8 {
+                height: 16px !important;
+            }
+
             /* 3. TRANSFORMAÇÃO DE FORMULÁRIOS EM TEXTO PURO */
-            input, select, textarea {
+            input,
+            select,
+            textarea {
                 border: none !important;
                 background: transparent !important;
                 padding: 0 !important;
@@ -133,7 +200,9 @@
                 outline: none !important;
                 margin: 0 !important;
                 min-width: 0 !important;
+                height: auto !important;
             }
+
             select {
                 appearance: none !important;
                 -webkit-appearance: none !important;
@@ -141,60 +210,196 @@
             }
 
             /* 4. COMPACTAÇÃO EXTREMA DA TABELA (Caber em 1 página) */
-            table { 
-                width: 100% !important; 
-                table-layout: auto !important;
+            table {
+                width: 100% !important;
+                table-layout: fixed !important;
                 min-width: 0 !important;
+                margin-bottom: 0 !important;
             }
-            th, td {
-                padding: 3px 4px !important;
-                font-size: 10px !important;
-                line-height: 1.1 !important;
+
+            th,
+            td {
+                padding: 2px 3px !important;
+                font-size: 9px !important;
+                line-height: 1.2 !important;
+                height: 18px !important;
                 min-width: 0 !important;
-                white-space: normal !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                border-bottom: 1px solid #e2e8f0 !important; /* Linha sutil para separar */
+            }
+
+            /* Nomes maiores e em negrito para facilitar visualização */
+            table#table-coroinhas th:nth-child(5),
+            table#table-coroinhas td:nth-child(5) input,
+            table#table-coroinhas th:nth-child(6),
+            table#table-coroinhas td:nth-child(6) input,
+            table#table-coroinhas th:nth-child(7),
+            table#table-coroinhas td:nth-child(7) input,
+            table#table-coroinhas th:nth-child(8),
+            table#table-coroinhas td:nth-child(8) input,
+            table#table-cerimoniarios th:nth-child(5),
+            table#table-cerimoniarios td:nth-child(5) input,
+            table#table-cerimoniarios th:nth-child(6),
+            table#table-cerimoniarios td:nth-child(6) input,
+            table#table-cerimoniarios th:nth-child(7),
+            table#table-cerimoniarios td:nth-child(7) input {
+                font-weight: bold !important;
+                font-size: 10px !important;
+            }
+
+            /* Larguras específicas para aproveitar o máximo da página sem quebrar o texto (Soma = 100%) */
+            /* 1: Data */
+            table#table-coroinhas th:nth-child(1),
+            table#table-coroinhas td:nth-child(1) {
+                width: 10%;
+            }
+
+            /* 2: Dia da Semana */
+            table#table-coroinhas th:nth-child(2),
+            table#table-coroinhas td:nth-child(2) {
+                width: 5%;
+            }
+
+            /* 3: Horário */
+            table#table-coroinhas th:nth-child(3),
+            table#table-coroinhas td:nth-child(3) {
+                width: 8%;
+            }
+
+            /* 4: Local (Reduzido) */
+            table#table-coroinhas th:nth-child(4),
+            table#table-coroinhas td:nth-child(4) {
+                width: 12%;
+            }
+
+            /* 5: Coroinha 1 */
+            table#table-coroinhas th:nth-child(5),
+            table#table-coroinhas td:nth-child(5) {
+                width: 16%;
+            }
+
+            /* 6: Coroinha 2 */
+            table#table-coroinhas th:nth-child(6),
+            table#table-coroinhas td:nth-child(6) {
+                width: 16%;
+            }
+
+            /* 7: Coroinha 3 */
+            table#table-coroinhas th:nth-child(7),
+            table#table-coroinhas td:nth-child(7) {
+                width: 16%;
+            }
+
+            /* 8: Observações */
+            table#table-coroinhas th:nth-child(8),
+            table#table-coroinhas td:nth-child(8) {
+                width: 17%;
+                overflow: visible !important;
+            }
+
+            /* 1: Data */
+            table#table-cerimoniarios th:nth-child(1),
+            table#table-cerimoniarios td:nth-child(1) {
+                width: 10%;
+            }
+
+            /* 2: Dia da Semana */
+            table#table-cerimoniarios th:nth-child(2),
+            table#table-cerimoniarios td:nth-child(2) {
+                width: 5%;
+            }
+
+            /* 3: Horário */
+            table#table-cerimoniarios th:nth-child(3),
+            table#table-cerimoniarios td:nth-child(3) {
+                width: 8%;
+            }
+
+            /* 4: Local */
+            table#table-cerimoniarios th:nth-child(4),
+            table#table-cerimoniarios td:nth-child(4) {
+                width: 13%;
+            }
+
+            /* 5: Cruciferário */
+            table#table-cerimoniarios th:nth-child(5),
+            table#table-cerimoniarios td:nth-child(5) {
+                width: 21%;
+            }
+
+            /* 6: Cerimonialista */
+            table#table-cerimoniarios th:nth-child(6),
+            table#table-cerimoniarios td:nth-child(6) {
+                width: 23%;
+            }
+
+            /* 7: Observações */
+            table#table-cerimoniarios th:nth-child(7),
+            table#table-cerimoniarios td:nth-child(7) {
+                width: 20%;
+                overflow: visible !important;
             }
 
             /* EXCEÇÃO: LAYOUT ESPAÇOSO PARA SERVIDORES (Lista de Presença/Viagem) */
             body.print-mode-servidores {
-                zoom: 1 !important; /* Remove o zoom out extremo, mas mantém proporção real da página A4 */
+                zoom: 1 !important;
+                /* Remove o zoom out extremo, mas mantém proporção real da página A4 */
             }
+
             body.print-mode-servidores #print-area-servidores table {
                 table-layout: fixed !important;
                 width: 100% !important;
             }
+
             body.print-mode-servidores #print-area-servidores th,
             body.print-mode-servidores #print-area-servidores td {
-                padding: 0.6rem 0.75rem !important; /* Espaço bom para caneta e marcações */
-                font-size: 0.875rem !important; /* text-sm */
+                padding: 0.6rem 0.75rem !important;
+                /* Espaço bom para caneta e marcações */
+                font-size: 0.875rem !important;
+                /* text-sm */
                 line-height: 1.3 !important;
             }
+
             body.print-mode-servidores #print-area-servidores td.text-xl {
-                font-size: 1rem !important; /* Volta os nomes de text-xl para text-base */
+                font-size: 1rem !important;
+                /* Volta os nomes de text-xl para text-base */
             }
+
             .break-before-page {
                 break-before: page !important;
                 page-break-before: always !important;
                 display: block !important;
                 height: 0 !important;
             }
-            tr, .main-row, .sublist-row { 
-                break-inside: avoid !important; 
-                page-break-inside: avoid !important; 
+
+            tr,
+            .main-row,
+            .sublist-row {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
             }
+
             .sublist-container {
                 padding: 4px !important;
                 margin-bottom: 2px !important;
                 margin-top: 2px !important;
             }
+
             .event-badge {
-                padding: 2px 6px !important;
+                padding: 2px 4px !important;
                 font-size: 8px !important;
+                display: inline-block !important;
+                line-height: 1.1 !important;
+                white-space: nowrap !important;
+                overflow: visible !important;
             }
-            
+
             #pdf-render-area {
                 display: none !important;
             }
-            
+
             /* Logo header shown ONLY in print */
             .print-custom-header {
                 display: flex !important;
@@ -211,7 +416,9 @@
 <body class="bg-gray-50 flex h-screen overflow-hidden font-sans text-slate-800">
 
     <!-- SIDEBAR OVERLAY (Mobile) -->
-    <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden md:hidden transition-opacity opacity-0" onclick="toggleSidebar()"></div>
+    <div id="sidebar-overlay"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden md:hidden transition-opacity opacity-0"
+        onclick="toggleSidebar()"></div>
 
     <!-- SIDEBAR -->
     <aside id="sidebar"
@@ -275,11 +482,13 @@
         <!-- TOPBAR -->
         <header
             class="h-16 bg-white shadow-sm flex items-center justify-between px-4 sm:px-6 z-10 no-print border-b border-gray-200 flex-shrink-0 gap-4">
-            
+
             <!-- Hamburger Menu (Mobile Only) -->
-            <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            <button onclick="toggleSidebar()"
+                class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+                    </path>
                 </svg>
             </button>
 
@@ -313,11 +522,13 @@
         <main class="flex-1 overflow-y-auto bg-slate-50/50 p-3 md:p-6 lg:p-8" id="main-content-area">
 
             <!-- Print Header -->
-            <div class="hidden print-custom-header print:flex items-center justify-between mb-4 border-b border-gray-300 pb-2">
+            <div
+                class="hidden print-custom-header print:flex items-center justify-between mb-4 border-b border-gray-300 pb-2">
                 <div class="flex items-center gap-4">
                     <img src="logo/logo_coroinhas.jpeg" alt="Logo" class="w-16 h-16 object-contain rounded-lg">
                     <div>
-                        <h1 class="text-2xl font-bold uppercase tracking-wider" id="print-title-text">ESCALA LITÚRGICA</h1>
+                        <h1 class="text-2xl font-bold uppercase tracking-wider" id="print-title-text">ESCALA LITÚRGICA
+                        </h1>
                         <h2 class="text-base text-slate-600">Paróquia Nossa Senhora das Graças</h2>
                     </div>
                 </div>
@@ -366,12 +577,18 @@
                             <option value="2029">2029</option>
                             <option value="2030">2030</option>
                         </select>
-                        <button onclick="abrirModalGerarMes()" class="admin-only px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors ml-2 no-print">
+                        <button onclick="abrirModalGerarMes()"
+                            class="admin-only px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors ml-2 no-print">
                             + Gerar Novo Mês
                         </button>
-                        <span id="badge-status-escala" class="admin-only ml-2 px-2.5 py-1.5 text-xs font-bold rounded-full no-print hidden"></span>
-                        <button id="btn-publicar-mes" onclick="publicarMesAtual()" class="admin-only px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors ml-2 no-print flex items-center gap-2 hidden">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        <span id="badge-status-escala"
+                            class="admin-only ml-2 px-2.5 py-1.5 text-xs font-bold rounded-full no-print hidden"></span>
+                        <button id="btn-publicar-mes" onclick="publicarMesAtual()"
+                            class="admin-only px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors ml-2 no-print flex items-center gap-2 hidden">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7"></path>
+                            </svg>
                             Publicar Escala
                         </button>
                     </div>
@@ -382,12 +599,19 @@
                     <div class="flex items-center justify-between">
                         <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
                             <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z">
+                                </path>
                             </svg>
                             Filtros de Pesquisa na Escala
                         </h3>
-                        <button onclick="limparFiltrosEscala()" class="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-1">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        <button onclick="limparFiltrosEscala()"
+                            class="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                </path>
+                            </svg>
                             Limpar Filtros
                         </button>
                     </div>
@@ -395,19 +619,23 @@
                         <!-- Nome -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-1">Nome do Servidor</label>
-                            <input type="text" id="filtro-escala-nome" oninput="aplicarFiltrosEscala()" placeholder="Buscar quem está escalado..." class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
+                            <input type="text" id="filtro-escala-nome" oninput="aplicarFiltrosEscala()"
+                                placeholder="Buscar quem está escalado..."
+                                class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
                         </div>
                         <!-- Local -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-1">Local da Missa</label>
-                            <select id="filtro-escala-local" onchange="aplicarFiltrosEscala()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
+                            <select id="filtro-escala-local" onchange="aplicarFiltrosEscala()"
+                                class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
                                 <option value="">Todos os Locais</option>
                             </select>
                         </div>
                         <!-- Dia da Semana -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-1">Dia da Semana</label>
-                            <select id="filtro-escala-dia" onchange="aplicarFiltrosEscala()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
+                            <select id="filtro-escala-dia" onchange="aplicarFiltrosEscala()"
+                                class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
                                 <option value="">Todos os Dias</option>
                                 <option value="Domingo">Domingo</option>
                                 <option value="Segunda-feira">Segunda-feira</option>
@@ -421,7 +649,9 @@
                         <!-- Horário -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-1">Horário</label>
-                            <input type="time" id="filtro-escala-hora" onchange="aplicarFiltrosEscala()" oninput="aplicarFiltrosEscala()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
+                            <input type="time" id="filtro-escala-hora" onchange="aplicarFiltrosEscala()"
+                                oninput="aplicarFiltrosEscala()"
+                                class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
                         </div>
                     </div>
                 </div>
@@ -460,35 +690,42 @@
                             </div>
                         </div>
                         <div class="overflow-visible p-0">
-                            <div class="w-full overflow-x-auto bg-white rounded-lg shadow-sm border border-slate-200 desktop-table-container">
+                            <div
+                                class="w-full overflow-x-auto bg-white rounded-lg shadow-sm border border-slate-200 desktop-table-container">
                                 <table class="w-full text-left border-collapse text-sm escala-table min-w-[1050px] mb-4"
                                     id="table-coroinhas">
-                                <thead>
-                                    <tr
-                                        class="bg-slate-50 text-slate-600 uppercase text-xs font-bold tracking-wider border-b border-slate-200">
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[140px]">Data</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[110px]">Dia da Semana</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[90px]">Horário</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap col-local min-w-[200px]">Local</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Coroinha 1</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Coroinha 2</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Coroinha 3</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Observações</th>
-                                        <th class="admin-only px-3 py-2.5 whitespace-nowrap text-center no-print">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    <!-- Rows added dynamically -->
-                                </tbody>
+                                    <thead>
+                                        <tr
+                                            class="bg-slate-50 text-slate-600 uppercase text-xs font-bold tracking-wider border-b border-slate-200">
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[140px]">Data</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[110px]">Dia da Semana</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[90px]">Horário</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap col-local min-w-[200px]">Local</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Coroinha 1</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Coroinha 2</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Coroinha 3</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Observações</th>
+                                            <th class="admin-only px-3 py-2.5 whitespace-nowrap text-center no-print">
+                                                Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        <!-- Rows added dynamically -->
+                                    </tbody>
                                 </table>
                             </div>
-                            
+
                             <!-- MOBILE CARDS CONTAINER (COROINHAS) -->
                             <div id="cards-coroinhas" class="mobile-cards-container space-y-4"></div>
 
                             <!-- BOTAO ESTILO NOTION - RODAPE COROINHAS -->
-                            <button class="admin-only w-full mt-4 py-3 border-2 border-dashed border-slate-300 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:border-blue-500 hover:text-blue-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm no-print" onclick="addRow('table-coroinhas')">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            <button
+                                class="admin-only w-full mt-4 py-3 border-2 border-dashed border-slate-300 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:border-blue-500 hover:text-blue-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm no-print"
+                                onclick="addRow('table-coroinhas')">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
                                 Adicionar Nova Missa
                             </button>
                         </div>
@@ -503,25 +740,27 @@
                             </div>
                         </div>
                         <div class="overflow-visible p-0">
-                            <div class="w-full overflow-x-auto bg-white rounded-lg shadow-sm border border-slate-200 desktop-table-container">
+                            <div
+                                class="w-full overflow-x-auto bg-white rounded-lg shadow-sm border border-slate-200 desktop-table-container">
                                 <table class="w-full text-left border-collapse text-sm escala-table min-w-[1050px] mb-4"
                                     id="table-cerimoniarios">
-                                <thead>
-                                    <tr
-                                        class="bg-slate-50 text-slate-600 uppercase text-xs font-bold tracking-wider border-b border-slate-200">
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[140px]">Data</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[110px]">Dia da Semana</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[90px]">Horário</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap col-local min-w-[200px]">Local</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Cruciferário</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Cerimonialista</th>
-                                        <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Observações</th>
-                                        <th class="admin-only px-3 py-2.5 whitespace-nowrap text-center no-print">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    <!-- Rows added dynamically -->
-                                </tbody>
+                                    <thead>
+                                        <tr
+                                            class="bg-slate-50 text-slate-600 uppercase text-xs font-bold tracking-wider border-b border-slate-200">
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[140px]">Data</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[110px]">Dia da Semana</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[90px]">Horário</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap col-local min-w-[200px]">Local</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Cruciferário</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Cerimonialista</th>
+                                            <th class="px-3 py-2.5 whitespace-nowrap min-w-[150px]">Observações</th>
+                                            <th class="admin-only px-3 py-2.5 whitespace-nowrap text-center no-print">
+                                                Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        <!-- Rows added dynamically -->
+                                    </tbody>
                                 </table>
                             </div>
 
@@ -529,8 +768,13 @@
                             <div id="cards-cerimoniarios" class="mobile-cards-container space-y-4"></div>
 
                             <!-- BOTAO ESTILO NOTION - RODAPE CERIMONIARIOS -->
-                            <button class="admin-only w-full mt-4 py-3 border-2 border-dashed border-slate-300 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:border-blue-500 hover:text-blue-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm no-print" onclick="addRow('table-cerimoniarios')">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            <button
+                                class="admin-only w-full mt-4 py-3 border-2 border-dashed border-slate-300 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:border-blue-500 hover:text-blue-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm no-print"
+                                onclick="addRow('table-cerimoniarios')">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
                                 Adicionar Nova Missa
                             </button>
                         </div>
@@ -560,9 +804,12 @@
                         </svg>
                         <span id="btn-whats-main-text">WhatsApp</span>
                     </button>
-                    <button onclick="abrirModalExportacao()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm font-medium flex items-center gap-2 transition-colors no-print">
+                    <button onclick="abrirModalExportacao()"
+                        class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm font-medium flex items-center gap-2 transition-colors no-print">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                            </path>
                         </svg>
                         Exportar
                     </button>
@@ -574,7 +821,8 @@
                 <div class="no-print">
                     <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                            <div
+                                class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
                                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
@@ -583,34 +831,49 @@
                             </div>
                             <div>
                                 <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Gerenciar Servidores</h1>
-                                <p class="text-sm text-slate-500 mt-1">Lista administrativa de coroinhas e cerimoniários.
+                                <p class="text-sm text-slate-500 mt-1">Lista administrativa de coroinhas e
+                                    cerimoniários.
                                 </p>
                             </div>
                         </div>
                         <div class="flex items-center gap-3 self-start sm:self-auto">
                             <!-- Dropdown Imprimir -->
                             <div class="relative inline-block text-left">
-                                <button onclick="toggleDropdownServidores(event)" class="px-4 py-2.5 bg-white border border-gray-200 text-slate-700 hover:bg-slate-50 rounded-lg shadow-sm font-semibold flex items-center gap-2 transition-colors">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                <button onclick="toggleDropdownServidores(event)"
+                                    class="px-4 py-2.5 bg-white border border-gray-200 text-slate-700 hover:bg-slate-50 rounded-lg shadow-sm font-semibold flex items-center gap-2 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+                                        </path>
+                                    </svg>
                                     Imprimir
-                                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7"></path>
+                                    </svg>
                                 </button>
                                 <div id="dropdown-imprimir-servidores" class="dropdown-menu">
                                     <div class="dropdown-header">Relatórios Detalhados</div>
-                                    <button onclick="imprimirServidores('coroinhas')" class="dropdown-item">Imprimir Coroinhas</button>
-                                    <button onclick="imprimirServidores('cerimoniarios')" class="dropdown-item">Imprimir Cerimoniários</button>
-                                    <button onclick="imprimirServidores('todos')" class="dropdown-item">Imprimir Todos</button>
+                                    <button onclick="imprimirServidores('coroinhas')" class="dropdown-item">Imprimir
+                                        Coroinhas</button>
+                                    <button onclick="imprimirServidores('cerimoniarios')" class="dropdown-item">Imprimir
+                                        Cerimoniários</button>
+                                    <button onclick="imprimirServidores('todos')" class="dropdown-item">Imprimir
+                                        Todos</button>
                                     <hr>
                                     <div class="dropdown-header">Listas Rápidas</div>
-                                    <button onclick="imprimirServidores('presenca')" class="dropdown-item">Lista de Presença Simples</button>
-                                    <button onclick="imprimirServidores('viagem')" class="dropdown-item">Controle p/ Viagens Externas</button>
+                                    <button onclick="imprimirServidores('presenca')" class="dropdown-item">Lista de
+                                        Presença Simples</button>
+                                    <button onclick="imprimirServidores('viagem')" class="dropdown-item">Controle p/
+                                        Viagens Externas</button>
                                 </div>
                             </div>
-                            
+
                             <button onclick="abrirModalServidor()"
                                 class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm font-semibold flex items-center gap-2 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4">
                                     </path>
                                 </svg>
                                 Novo Servidor
@@ -622,13 +885,21 @@
                     <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-200 mb-6 space-y-3">
                         <div class="flex items-center justify-between">
                             <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z">
+                                    </path>
                                 </svg>
                                 Filtros de Pesquisa
                             </h3>
-                            <button onclick="limparFiltrosServidores()" class="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            <button onclick="limparFiltrosServidores()"
+                                class="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                    </path>
+                                </svg>
                                 Limpar Filtros
                             </button>
                         </div>
@@ -636,12 +907,15 @@
                             <!-- Buscar por Nome -->
                             <div>
                                 <label class="block text-xs font-semibold text-slate-500 mb-1">Nome</label>
-                                <input type="text" id="filtro-servidor-nome" oninput="aplicarFiltrosServidores()" placeholder="Buscar por nome..." class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
+                                <input type="text" id="filtro-servidor-nome" oninput="aplicarFiltrosServidores()"
+                                    placeholder="Buscar por nome..."
+                                    class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
                             </div>
                             <!-- Função (Coroinha/Cerimoniário) -->
                             <div>
                                 <label class="block text-xs font-semibold text-slate-500 mb-1">Função</label>
-                                <select id="filtro-servidor-funcao" onchange="aplicarFiltrosServidores()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
+                                <select id="filtro-servidor-funcao" onchange="aplicarFiltrosServidores()"
+                                    class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
                                     <option value="">Todas as Funções</option>
                                     <option value="coroinha">Coroinha</option>
                                     <option value="cerimoniario">Cerimoniário</option>
@@ -649,13 +923,17 @@
                             </div>
                             <!-- Buscar por Tag -->
                             <div>
-                                <label class="block text-xs font-semibold text-slate-500 mb-1">Tag / Especialidade</label>
-                                <input type="text" id="filtro-servidor-tag" oninput="aplicarFiltrosServidores()" placeholder="Ex: Turíbulo, Naveta..." class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Tag /
+                                    Especialidade</label>
+                                <input type="text" id="filtro-servidor-tag" oninput="aplicarFiltrosServidores()"
+                                    placeholder="Ex: Turíbulo, Naveta..."
+                                    class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
                             </div>
                             <!-- Faixa de Idade -->
                             <div>
                                 <label class="block text-xs font-semibold text-slate-500 mb-1">Idade</label>
-                                <select id="filtro-servidor-idade" onchange="aplicarFiltrosServidores()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
+                                <select id="filtro-servidor-idade" onchange="aplicarFiltrosServidores()"
+                                    class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
                                     <option value="">Todas as Idades</option>
                                     <option value="0-12">Até 12 anos</option>
                                     <option value="13-17">13 a 17 anos</option>
@@ -665,7 +943,8 @@
                             <!-- Indisponibilidade -->
                             <div>
                                 <label class="block text-xs font-semibold text-slate-500 mb-1">Indisponibilidade</label>
-                                <select id="filtro-servidor-indisponibilidade" onchange="aplicarFiltrosServidores()" class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
+                                <select id="filtro-servidor-indisponibilidade" onchange="aplicarFiltrosServidores()"
+                                    class="w-full p-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-shadow">
                                     <option value="">Todos</option>
                                     <option value="livre">Totalmente Livres</option>
                                     <option value="indisponivel">Com Indisponibilidade</option>
@@ -711,45 +990,58 @@
                 <div class="mb-6 flex items-center gap-4">
                     <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
                     </div>
                     <div>
                         <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Configurações Gerais</h1>
-                        <p class="text-sm text-slate-500 mt-1">Gerencie eventos, locais, funções e backup do sistema.</p>
+                        <p class="text-sm text-slate-500 mt-1">Gerencie eventos, locais, funções e backup do sistema.
+                        </p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-                    
+
                     <!-- 1. GERENCIAMENTO DE EVENTOS -->
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-full">
                         <div class="mb-4">
                             <h2 class="text-lg font-bold text-slate-800">Eventos Especiais</h2>
-                            <p class="text-xs text-slate-500">Adicione cores e regras automáticas para datas festivas.</p>
+                            <p class="text-xs text-slate-500">Adicione cores e regras automáticas para datas festivas.
+                            </p>
                         </div>
-                        
+
                         <div class="bg-slate-50 p-4 rounded-xl border border-gray-100 mb-4">
                             <div class="flex flex-col sm:flex-row gap-3">
-                                <input type="text" id="novo-evento-nome" placeholder="Nome do Evento" class="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                <input type="text" id="novo-evento-nome" placeholder="Nome do Evento"
+                                    class="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                 <div class="flex gap-3 items-center">
-                                    <input type="color" id="novo-evento-cor" value="#FFEBEE" class="w-10 h-10 rounded cursor-pointer border-0 bg-transparent p-0">
-                                    <button id="btn-salvar-evento" onclick="salvarFormEvento()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm transition-colors shadow-sm whitespace-nowrap">
+                                    <input type="color" id="novo-evento-cor" value="#FFEBEE"
+                                        class="w-10 h-10 rounded cursor-pointer border-0 bg-transparent p-0">
+                                    <button id="btn-salvar-evento" onclick="salvarFormEvento()"
+                                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm transition-colors shadow-sm whitespace-nowrap">
                                         + Adicionar
                                     </button>
-                                    <button id="btn-cancelar-edicao-evento" onclick="cancelarEdicaoEvento()" class="hidden px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-sm transition-colors shadow-sm whitespace-nowrap">
+                                    <button id="btn-cancelar-edicao-evento" onclick="cancelarEdicaoEvento()"
+                                        class="hidden px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-sm transition-colors shadow-sm whitespace-nowrap">
                                         Cancelar
                                     </button>
                                 </div>
                             </div>
                             <div class="mt-3 flex flex-wrap gap-4">
-                                <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 font-medium">
-                                    <input type="checkbox" id="novo-evento-geral" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                                <label
+                                    class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 font-medium">
+                                    <input type="checkbox" id="novo-evento-geral"
+                                        class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
                                     Convocação Geral
                                 </label>
-                                <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 font-medium">
-                                    <input type="checkbox" id="novo-evento-pintar" checked class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                                <label
+                                    class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 font-medium">
+                                    <input type="checkbox" id="novo-evento-pintar" checked
+                                        class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
                                     Pintar Linha
                                 </label>
                             </div>
@@ -766,16 +1058,19 @@
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-full">
                         <div class="mb-4">
                             <h2 class="text-lg font-bold text-slate-800">Locais das Missas</h2>
-                            <p class="text-xs text-slate-500">Gerencie os locais disponíveis para seleção nas escalas.</p>
+                            <p class="text-xs text-slate-500">Gerencie os locais disponíveis para seleção nas escalas.
+                            </p>
                         </div>
-                        
+
                         <div class="flex gap-2 mb-4">
-                            <input type="text" id="novo-local-nome" placeholder="Nome do Local (Ex: Matriz)" class="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                            <button onclick="adicionarLocal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm transition-colors shadow-sm whitespace-nowrap">
+                            <input type="text" id="novo-local-nome" placeholder="Nome do Local (Ex: Matriz)"
+                                class="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            <button onclick="adicionarLocal()"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm transition-colors shadow-sm whitespace-nowrap">
                                 Adicionar
                             </button>
                         </div>
-                        
+
                         <div class="flex-1 bg-slate-50 p-4 rounded-xl border border-gray-100 min-h-[150px]">
                             <div id="lista-locais" class="flex flex-wrap gap-2 content-start">
                                 <!-- Preenchido via JS -->
@@ -787,16 +1082,19 @@
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-full">
                         <div class="mb-4">
                             <h2 class="text-lg font-bold text-slate-800">Funções Litúrgicas Extras</h2>
-                            <p class="text-xs text-slate-500">Adicione novas opções (tags) para designação rápida (Ex: Turíbulo).</p>
+                            <p class="text-xs text-slate-500">Adicione novas opções (tags) para designação rápida (Ex:
+                                Turíbulo).</p>
                         </div>
-                        
+
                         <div class="flex gap-2 mb-4">
-                            <input type="text" id="nova-funcao-nome" placeholder="Nome da Função" class="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                            <button onclick="adicionarFuncao()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm transition-colors shadow-sm whitespace-nowrap">
+                            <input type="text" id="nova-funcao-nome" placeholder="Nome da Função"
+                                class="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            <button onclick="adicionarFuncao()"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm transition-colors shadow-sm whitespace-nowrap">
                                 Adicionar
                             </button>
                         </div>
-                        
+
                         <div class="flex-1 bg-slate-50 p-4 rounded-xl border border-gray-100 min-h-[150px]">
                             <div id="lista-funcoes" class="flex flex-wrap gap-2 content-start">
                                 <!-- Preenchido via JS -->
@@ -807,15 +1105,26 @@
                     <!-- 4. ZONA DE SEGURANÇA E BACKUP -->
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-full">
                         <div class="mb-4 flex items-center gap-2 text-slate-800">
-                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                                </path>
+                            </svg>
                             <h2 class="text-lg font-bold">Zona de Segurança & Backup</h2>
                         </div>
-                        <p class="text-xs text-slate-500 mb-6">Realize cópias de segurança locais e restaure dados. Tenha cautela ao importar backups sobre dados existentes.</p>
-                        
+                        <p class="text-xs text-slate-500 mb-6">Realize cópias de segurança locais e restaure dados.
+                            Tenha cautela ao importar backups sobre dados existentes.</p>
+
                         <div class="grid grid-cols-1 gap-4 flex-1">
-                            <button onclick="exportarBackupJSON()" class="flex items-center justify-center gap-3 p-4 bg-slate-50 hover:bg-blue-50 border-2 border-dashed border-slate-200 hover:border-blue-300 rounded-xl transition-all group">
-                                <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            <button onclick="exportarBackupJSON()"
+                                class="flex items-center justify-center gap-3 p-4 bg-slate-50 hover:bg-blue-50 border-2 border-dashed border-slate-200 hover:border-blue-300 rounded-xl transition-all group">
+                                <div
+                                    class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                    </svg>
                                 </div>
                                 <div class="text-left">
                                     <h4 class="font-bold text-slate-700 text-sm">Exportar Dados (JSON)</h4>
@@ -823,10 +1132,17 @@
                                 </div>
                             </button>
 
-                            <label class="flex items-center justify-center gap-3 p-4 bg-slate-50 hover:bg-orange-50 border-2 border-dashed border-slate-200 hover:border-orange-300 rounded-xl transition-all cursor-pointer group m-0">
-                                <input type="file" id="input-restore-backup" class="hidden" accept=".json" onchange="restaurarBackupJSON(event)">
-                                <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                                    <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            <label
+                                class="flex items-center justify-center gap-3 p-4 bg-slate-50 hover:bg-orange-50 border-2 border-dashed border-slate-200 hover:border-orange-300 rounded-xl transition-all cursor-pointer group m-0">
+                                <input type="file" id="input-restore-backup" class="hidden" accept=".json"
+                                    onchange="restaurarBackupJSON(event)">
+                                <div
+                                    class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                    <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                                    </svg>
                                 </div>
                                 <div class="text-left">
                                     <h4 class="font-bold text-slate-700 text-sm">Restaurar Backup (JSON)</h4>
@@ -835,7 +1151,7 @@
                             </label>
                         </div>
                     </div>
-                    
+
                 </div>
             </section>
 
@@ -843,20 +1159,35 @@
     </div>
 
     <!-- MODAL EXPORTAÇÃO -->
-    <div id="modal-exportacao" class="no-print hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in transition-opacity duration-200">
+    <div id="modal-exportacao"
+        class="no-print hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in transition-opacity duration-200">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform transition-all">
             <div class="bg-blue-600 px-6 py-4 flex justify-between items-center">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                        </path>
+                    </svg>
                     Opções de Exportação
                 </h3>
-                <button onclick="fecharModalExportacao()" class="text-blue-100 hover:text-white transition-colors p-1 rounded-full hover:bg-blue-700">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button onclick="fecharModalExportacao()"
+                    class="text-blue-100 hover:text-white transition-colors p-1 rounded-full hover:bg-blue-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
                 </button>
             </div>
             <div class="p-6 space-y-3">
-                <button onclick="exportWhatsApp(this)" class="w-full flex items-center gap-4 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-3 rounded-xl font-semibold transition-all duration-300 border border-green-200">
-                    <div class="bg-green-100 p-2 rounded-lg" id="btn-whats-modal-icon"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg></div>
+                <button onclick="exportWhatsApp(this)"
+                    class="w-full flex items-center gap-4 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-3 rounded-xl font-semibold transition-all duration-300 border border-green-200">
+                    <div class="bg-green-100 p-2 rounded-lg" id="btn-whats-modal-icon"><svg
+                            class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
+                            </path>
+                        </svg></div>
                     <div class="text-left" id="btn-whats-modal-text">
                         <div class="text-sm">Copiar para</div>
                         <div class="text-base">WhatsApp</div>
@@ -865,8 +1196,14 @@
 
 
 
-                <button onclick="exportPDF(); fecharModalExportacao();" class="w-full flex items-center gap-4 bg-orange-50 hover:bg-orange-100 text-orange-700 px-4 py-3 rounded-xl font-semibold transition-colors border border-orange-200">
-                    <div class="bg-orange-100 p-2 rounded-lg"><svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg></div>
+                <button onclick="exportPDF(); fecharModalExportacao();"
+                    class="w-full flex items-center gap-4 bg-orange-50 hover:bg-orange-100 text-orange-700 px-4 py-3 rounded-xl font-semibold transition-colors border border-orange-200">
+                    <div class="bg-orange-100 p-2 rounded-lg"><svg class="w-6 h-6 text-orange-600" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+                            </path>
+                        </svg></div>
                     <div class="text-left">
                         <div class="text-sm">Gerar PDF ou</div>
                         <div class="text-base">Imprimir</div>
@@ -874,7 +1211,8 @@
                 </button>
             </div>
             <div class="bg-gray-50 px-6 py-4 text-center border-t border-gray-100">
-                <button onclick="fecharModalExportacao()" class="text-sm font-semibold text-slate-500 hover:text-slate-700">Cancelar</button>
+                <button onclick="fecharModalExportacao()"
+                    class="text-sm font-semibold text-slate-500 hover:text-slate-700">Cancelar</button>
             </div>
         </div>
     </div>
@@ -908,11 +1246,13 @@
             <div class="p-8 overflow-y-auto flex-1">
                 <!-- SISTEMA DE ABAS -->
                 <div class="flex gap-2 border-b border-slate-200 mb-5">
-                    <button type="button" id="tab-btn-dados" onclick="alternarAbaServidor('dados')" class="px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-semibold transition-colors">
-                         Dados da Escala
+                    <button type="button" id="tab-btn-dados" onclick="alternarAbaServidor('dados')"
+                        class="px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-semibold transition-colors">
+                        Dados da Escala
                     </button>
-                    <button type="button" id="tab-btn-contato" onclick="alternarAbaServidor('contato')" class="px-4 py-2 text-slate-500 hover:text-slate-700 font-semibold transition-colors border-b-2 border-transparent">
-                         Contato & Família
+                    <button type="button" id="tab-btn-contato" onclick="alternarAbaServidor('contato')"
+                        class="px-4 py-2 text-slate-500 hover:text-slate-700 font-semibold transition-colors border-b-2 border-transparent">
+                        Contato & Família
                     </button>
                 </div>
 
@@ -923,21 +1263,39 @@
                         <div class="space-y-5">
                             <div class="flex items-center gap-4">
                                 <div class="flex items-center gap-1">
-                                    <div class="relative w-16 h-16 rounded-full bg-slate-200 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden group cursor-pointer shrink-0" onclick="document.getElementById('novo-servidor-foto-input').click()">
-                                        <img id="novo-servidor-foto-preview" class="w-full h-full object-cover hidden" alt="Foto">
-                                        <div class="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center transition-all">
-                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <div class="relative w-16 h-16 rounded-full bg-slate-200 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden group cursor-pointer shrink-0"
+                                        onclick="document.getElementById('novo-servidor-foto-input').click()">
+                                        <img id="novo-servidor-foto-preview" class="w-full h-full object-cover hidden"
+                                            alt="Foto">
+                                        <div
+                                            class="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center transition-all">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                                                </path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            </svg>
                                         </div>
-                                        <span id="novo-servidor-foto-text" class="text-xs text-slate-400 font-bold group-hover:hidden text-center leading-tight">Add<br>Foto</span>
+                                        <span id="novo-servidor-foto-text"
+                                            class="text-xs text-slate-400 font-bold group-hover:hidden text-center leading-tight">Add<br>Foto</span>
                                     </div>
-                                    <button type="button" id="btn-remover-foto" onclick="removerFotoServidor()" class="hidden p-2 text-rose-500 hover:bg-rose-50 rounded-full transition-colors shrink-0" title="Remover Foto">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    <button type="button" id="btn-remover-foto" onclick="removerFotoServidor()"
+                                        class="hidden p-2 text-rose-500 hover:bg-rose-50 rounded-full transition-colors shrink-0"
+                                        title="Remover Foto">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                            </path>
+                                        </svg>
                                     </button>
                                 </div>
                                 <input type="file" id="novo-servidor-foto-input" accept="image/*" class="hidden">
-                                
+
                                 <div class="flex-1">
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nome Completo</label>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nome
+                                        Completo</label>
                                     <input type="text" id="novo-servidor-nome"
                                         class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-shadow"
                                         placeholder="Ex: João da Silva">
@@ -946,7 +1304,8 @@
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nascimento</label>
-                                    <input type="date" id="novo-servidor-data-nascimento" oninput="calcularIdadeInput()" onchange="calcularIdadeInput()"
+                                    <input type="date" id="novo-servidor-data-nascimento" oninput="calcularIdadeInput()"
+                                        onchange="calcularIdadeInput()"
                                         class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow">
                                 </div>
                                 <div>
@@ -972,45 +1331,65 @@
                                     placeholder="Ex: Turíbulo, Naveta (separado por vírgula)">
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Data de Investidura</label>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Data de
+                                    Investidura</label>
                                 <input type="date" id="novo-servidor-data-investidura"
                                     class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-shadow bg-white text-slate-700">
                             </div>
                         </div>
 
                         <!-- Column 2: Availability -->
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-gray-200 shadow-inner flex flex-col justify-center">
-                            <h3 class="text-base font-bold text-slate-800 mb-1">Dias que NÃO PODE servir (Indisponibilidade):</h3>
+                        <div
+                            class="bg-slate-50 p-6 rounded-2xl border border-gray-200 shadow-inner flex flex-col justify-center">
+                            <h3 class="text-base font-bold text-slate-800 mb-1">Dias que NÃO PODE servir
+                                (Indisponibilidade):</h3>
                             <p class="text-sm text-slate-500 mb-5">Marque os dias que a pessoa tem compromisso fixo.</p>
 
                             <div class="flex flex-wrap gap-1.5 justify-center sm:justify-start">
                                 <label class="relative cursor-pointer group">
                                     <input type="checkbox" value="Domingo" class="peer sr-only cb-dia-indisponivel">
-                                    <div class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">Dom</div>
+                                    <div
+                                        class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">
+                                        Dom</div>
                                 </label>
                                 <label class="relative cursor-pointer group">
-                                    <input type="checkbox" value="Segunda-feira" class="peer sr-only cb-dia-indisponivel">
-                                    <div class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">Seg</div>
+                                    <input type="checkbox" value="Segunda-feira"
+                                        class="peer sr-only cb-dia-indisponivel">
+                                    <div
+                                        class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">
+                                        Seg</div>
                                 </label>
                                 <label class="relative cursor-pointer group">
                                     <input type="checkbox" value="Terça-feira" class="peer sr-only cb-dia-indisponivel">
-                                    <div class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">Ter</div>
+                                    <div
+                                        class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">
+                                        Ter</div>
                                 </label>
                                 <label class="relative cursor-pointer group">
-                                    <input type="checkbox" value="Quarta-feira" class="peer sr-only cb-dia-indisponivel">
-                                    <div class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">Qua</div>
+                                    <input type="checkbox" value="Quarta-feira"
+                                        class="peer sr-only cb-dia-indisponivel">
+                                    <div
+                                        class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">
+                                        Qua</div>
                                 </label>
                                 <label class="relative cursor-pointer group">
-                                    <input type="checkbox" value="Quinta-feira" class="peer sr-only cb-dia-indisponivel">
-                                    <div class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">Qui</div>
+                                    <input type="checkbox" value="Quinta-feira"
+                                        class="peer sr-only cb-dia-indisponivel">
+                                    <div
+                                        class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">
+                                        Qui</div>
                                 </label>
                                 <label class="relative cursor-pointer group">
                                     <input type="checkbox" value="Sexta-feira" class="peer sr-only cb-dia-indisponivel">
-                                    <div class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">Sex</div>
+                                    <div
+                                        class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">
+                                        Sex</div>
                                 </label>
                                 <label class="relative cursor-pointer group">
                                     <input type="checkbox" value="Sábado" class="peer sr-only cb-dia-indisponivel">
-                                    <div class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">Sáb</div>
+                                    <div
+                                        class="w-10 h-10 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 flex items-center justify-center transition-all hover:border-rose-400 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-500 shadow-sm">
+                                        Sáb</div>
                                 </label>
                             </div>
                         </div>
@@ -1025,10 +1404,13 @@
                             <label class="flex items-center text-sm font-semibold text-slate-700 mb-1.5">
                                 Nome do Pai / Mãe ou Responsável
                                 <div class="group relative cursor-help inline-flex items-center ml-1">
-                                    <svg class="w-4 h-4 text-slate-400 hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    <svg class="w-4 h-4 text-slate-400 hover:text-blue-500 transition-colors"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    <div class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-52 p-2 bg-slate-800 text-white text-[11px] rounded shadow-lg z-50 text-center font-normal leading-tight">
+                                    <div
+                                        class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-52 p-2 bg-slate-800 text-white text-[11px] rounded shadow-lg z-50 text-center font-normal leading-tight">
                                         Caso o servidor seja maior de idade, preencher com o próprio nome.
                                     </div>
                                 </div>
@@ -1040,13 +1422,15 @@
 
                         <!-- TELEFONES EM GRID -->
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Telefone / WhatsApp (Responsável)</label>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Telefone / WhatsApp
+                                (Responsável)</label>
                             <input type="tel" id="novo-servidor-tel-responsavel"
                                 class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-shadow"
                                 placeholder="Ex: (00) 90000-0000">
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Telefone do Próprio Servidor (Opcional)</label>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Telefone do Próprio
+                                Servidor (Opcional)</label>
                             <input type="tel" id="novo-servidor-tel-proprio"
                                 class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-shadow"
                                 placeholder="Ex: (00) 90000-0000">
@@ -1054,10 +1438,12 @@
 
                         <!-- ENDEREÇO RESIDENCIAL -->
                         <div class="md:col-span-2 pt-2">
-                            <h3 class="text-sm font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Endereço Residencial</h3>
+                            <h3 class="text-sm font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Endereço
+                                Residencial</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div class="md:col-span-2">
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Rua / Logradouro e Número</label>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Rua / Logradouro e
+                                        Número</label>
                                     <input type="text" id="novo-servidor-endereco-rua" autocomplete="address-line1"
                                         class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-shadow"
                                         placeholder="Ex: Rua das Flores, 123">
@@ -1069,7 +1455,8 @@
                                         placeholder="Ex: Centro">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Cidade / Complemento</label>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Cidade /
+                                        Complemento</label>
                                     <input type="text" id="novo-servidor-endereco-cidade" autocomplete="address-level2"
                                         class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-shadow"
                                         placeholder="Ex: São Paulo - SP / Apto 42">
@@ -1081,19 +1468,24 @@
                         <div class="md:col-span-2 pt-2">
                             <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="novo-servidor-autoriza-imagem" class="w-4 h-4 accent-blue-600 rounded border-gray-300">
-                                    <span class="text-sm text-slate-700 font-medium">Autorização de uso de imagem nas redes sociais da Paróquia/Comunidade</span>
+                                    <input type="checkbox" id="novo-servidor-autoriza-imagem"
+                                        class="w-4 h-4 accent-blue-600 rounded border-gray-300">
+                                    <span class="text-sm text-slate-700 font-medium">Autorização de uso de imagem nas
+                                        redes sociais da Paróquia/Comunidade</span>
                                 </label>
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="novo-servidor-autoriza-eventos" class="w-4 h-4 accent-blue-600 rounded border-gray-300">
-                                    <span class="text-sm text-slate-700 font-medium">Participação autorizada em retiros e eventos externos</span>
+                                    <input type="checkbox" id="novo-servidor-autoriza-eventos"
+                                        class="w-4 h-4 accent-blue-600 rounded border-gray-300">
+                                    <span class="text-sm text-slate-700 font-medium">Participação autorizada em retiros
+                                        e eventos externos</span>
                                 </label>
                             </div>
                         </div>
 
                         <!-- OBSERVAÇÕES & RESTRIÇÕES -->
                         <div class="md:col-span-2 pt-2">
-                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Observações & Restrições Médicas</label>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Observações & Restrições
+                                Médicas</label>
                             <textarea id="novo-servidor-observacoes" rows="2"
                                 class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition-shadow"
                                 placeholder="Ex: Alérgico a incenso, restrições alimentares, etc."></textarea>
@@ -1119,13 +1511,19 @@
     </div>
 
     <!-- MODAL DE CONFIGURAÇÕES -->
-    <div id="config-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden relative animate-fade-in">
+    <div id="config-modal"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+        <div
+            class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden relative animate-fade-in">
             <!-- Header Modal -->
             <div class="flex items-center justify-between p-6 border-b border-gray-100 bg-slate-50">
                 <h2 class="text-xl font-bold text-slate-800">Configurações</h2>
-                <button onclick="closeConfigModal()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button onclick="closeConfigModal()"
+                    class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
                 </button>
             </div>
             <!-- Body Modal -->
@@ -1135,7 +1533,8 @@
                     <div class="bg-slate-50 p-6 rounded-2xl border border-gray-200">
                         <h3 class="font-bold text-slate-800 mb-4">Locais das Missas</h3>
                         <div id="locais-list" class="space-y-2 mb-4"></div>
-                        <button onclick="addNewLocalConfig()" class="w-full py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-slate-700 hover:bg-gray-50">
+                        <button onclick="addNewLocalConfig()"
+                            class="w-full py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-slate-700 hover:bg-gray-50">
                             Novo Local
                         </button>
                     </div>
@@ -1254,7 +1653,8 @@
     </div>
 
     <template id="row-coroinhas-template">
-        <tr class="main-row group group/linha relative hover:bg-slate-100 transition-all duration-500 border-b border-gray-200">
+        <tr
+            class="main-row group group/linha relative hover:bg-slate-100 transition-all duration-500 border-b border-gray-200">
             <td class="colorable data-cell px-3 py-2.5 whitespace-nowrap align-middle">
                 <input type="date"
                     class="date-input min-w-[130px] w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-slate-700 shadow-sm"
@@ -1317,11 +1717,15 @@
                         </svg>
                     </button>
                 </div>
-                <div class="absolute left-3 -bottom-3 z-30 flex items-center justify-center opacity-0 group-hover/linha:opacity-100 transition-opacity duration-150 pointer-events-none">
-                    <button type="button" class="pointer-events-auto bg-blue-500 border-2 border-white hover:bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow hover:scale-110 transition-all cursor-pointer" title="Inserir missa abaixo" onclick="inserirMissaApos(this)">
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path>
-                      </svg>
+                <div
+                    class="absolute left-3 -bottom-3 z-30 flex items-center justify-center opacity-0 group-hover/linha:opacity-100 transition-opacity duration-150 pointer-events-none">
+                    <button type="button"
+                        class="pointer-events-auto bg-blue-500 border-2 border-white hover:bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow hover:scale-110 transition-all cursor-pointer"
+                        title="Inserir missa abaixo" onclick="inserirMissaApos(this)">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
                     </button>
                 </div>
             </td>
@@ -1329,7 +1733,8 @@
     </template>
 
     <template id="row-cerimoniarios-template">
-        <tr class="main-row group group/linha relative hover:bg-slate-100 transition-all duration-500 border-b border-gray-200">
+        <tr
+            class="main-row group group/linha relative hover:bg-slate-100 transition-all duration-500 border-b border-gray-200">
             <td class="colorable data-cell px-3 py-2.5 whitespace-nowrap align-middle">
                 <input type="date"
                     class="date-input min-w-[130px] w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-slate-700 shadow-sm"
@@ -1387,11 +1792,15 @@
                         </svg>
                     </button>
                 </div>
-                <div class="absolute left-3 -bottom-3 z-30 flex items-center justify-center opacity-0 group-hover/linha:opacity-100 transition-opacity duration-150 pointer-events-none">
-                    <button type="button" class="pointer-events-auto bg-blue-500 border-2 border-white hover:bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow hover:scale-110 transition-all cursor-pointer" title="Inserir missa abaixo" onclick="inserirMissaApos(this)">
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path>
-                      </svg>
+                <div
+                    class="absolute left-3 -bottom-3 z-30 flex items-center justify-center opacity-0 group-hover/linha:opacity-100 transition-opacity duration-150 pointer-events-none">
+                    <button type="button"
+                        class="pointer-events-auto bg-blue-500 border-2 border-white hover:bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow hover:scale-110 transition-all cursor-pointer"
+                        title="Inserir missa abaixo" onclick="inserirMissaApos(this)">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
                     </button>
                 </div>
             </td>
@@ -1492,7 +1901,7 @@
                 const el = document.getElementById(id);
                 if (el) el.style.display = 'none';
             });
-            
+
             const selectedSection = document.getElementById(`section-${viewName}`);
             if (selectedSection) selectedSection.style.display = 'block';
         }
@@ -1510,14 +1919,16 @@
     </script>
 
     <!-- MODAL GERAR MÊS -->
-    <div id="modal-gerar-mes" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+    <div id="modal-gerar-mes"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl transform transition-all">
             <h3 class="text-xl font-bold text-slate-800 mb-4">Gerar Escala do Mês</h3>
             <div class="space-y-4">
                 <div class="flex gap-4">
                     <div class="flex-1">
                         <label class="block text-sm font-medium text-slate-700 mb-1">Mês de Destino</label>
-                        <select id="gerar-mes-select" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <select id="gerar-mes-select"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                             <option value="Janeiro">Janeiro</option>
                             <option value="Fevereiro">Fevereiro</option>
                             <option value="Março">Março</option>
@@ -1534,7 +1945,8 @@
                     </div>
                     <div class="flex-1">
                         <label class="block text-sm font-medium text-slate-700 mb-1">Ano</label>
-                        <select id="gerar-ano-select" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <select id="gerar-ano-select"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                             <option value="2024">2024</option>
                             <option value="2025">2025</option>
                             <option value="2026" selected>2026</option>
@@ -1546,66 +1958,96 @@
                     </div>
                 </div>
                 <div>
-                    <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 font-medium bg-slate-50 p-3 rounded-lg border border-slate-200">
-                        <input type="checkbox" id="gerar-copiar-padrao" checked class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                    <label
+                        class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 font-medium bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <input type="checkbox" id="gerar-copiar-padrao" checked
+                            class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
                         Copiar horários e locais padrão dos finais de semana (Sábados e Domingos)
                     </label>
                 </div>
-                
+
                 <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Incluir Missas Semanais (Horário padrão):</label>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Incluir Missas Semanais (Horário
+                        padrão):</label>
                     <div class="flex items-center gap-3">
                         <div class="flex gap-2">
                             <label class="cursor-pointer">
                                 <input type="checkbox" id="chk-segunda" class="peer hidden" value="1">
-                                <div class="w-9 h-9 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 flex items-center justify-center transition-all hover:border-blue-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">Seg</div>
+                                <div
+                                    class="w-9 h-9 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 flex items-center justify-center transition-all hover:border-blue-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">
+                                    Seg</div>
                             </label>
                             <label class="cursor-pointer">
                                 <input type="checkbox" id="chk-terca" class="peer hidden" value="2">
-                                <div class="w-9 h-9 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 flex items-center justify-center transition-all hover:border-blue-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">Ter</div>
+                                <div
+                                    class="w-9 h-9 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 flex items-center justify-center transition-all hover:border-blue-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">
+                                    Ter</div>
                             </label>
                             <label class="cursor-pointer">
                                 <input type="checkbox" id="chk-quarta" class="peer hidden" value="3">
-                                <div class="w-9 h-9 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 flex items-center justify-center transition-all hover:border-blue-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">Qua</div>
+                                <div
+                                    class="w-9 h-9 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 flex items-center justify-center transition-all hover:border-blue-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">
+                                    Qua</div>
                             </label>
                             <label class="cursor-pointer">
                                 <input type="checkbox" id="chk-quinta" class="peer hidden" value="4">
-                                <div class="w-9 h-9 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 flex items-center justify-center transition-all hover:border-blue-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">Qui</div>
+                                <div
+                                    class="w-9 h-9 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 flex items-center justify-center transition-all hover:border-blue-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">
+                                    Qui</div>
                             </label>
                             <label class="cursor-pointer">
                                 <input type="checkbox" id="chk-sexta" class="peer hidden" value="5">
-                                <div class="w-9 h-9 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 flex items-center justify-center transition-all hover:border-blue-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">Sex</div>
+                                <div
+                                    class="w-9 h-9 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 flex items-center justify-center transition-all hover:border-blue-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">
+                                    Sex</div>
                             </label>
                         </div>
-                        <input type="time" id="input-hora-semana" value="19:00" class="p-2 border border-slate-300 rounded-lg text-sm w-24 focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-700">
+                        <input type="time" id="input-hora-semana" value="19:00"
+                            class="p-2 border border-slate-300 rounded-lg text-sm w-24 focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-700">
                     </div>
                 </div>
 
                 <div class="bg-red-50 p-3 rounded-lg border border-red-200">
                     <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="chk-substituir-mes" class="form-checkbox h-5 w-5 text-red-600 border-red-300 rounded focus:ring-red-500">
-                        <span class="text-sm font-semibold text-red-700">Substituir missas existentes deste mês (evitar duplicadas)</span>
+                        <input type="checkbox" id="chk-substituir-mes"
+                            class="form-checkbox h-5 w-5 text-red-600 border-red-300 rounded focus:ring-red-500">
+                        <span class="text-sm font-semibold text-red-700">Substituir missas existentes deste mês (evitar
+                            duplicadas)</span>
                     </label>
                 </div>
                 <div class="bg-red-50 p-4 rounded-lg border border-red-100">
                     <p class="text-xs text-red-600 font-semibold mb-2">TRAVA DE SEGURANÇA</p>
-                    <p class="text-xs text-slate-600 mb-2">Para confirmar a geração de um novo mês inteiro, digite <strong class="text-slate-800">GERAR</strong> no campo abaixo:</p>
-                    <input type="text" id="gerar-trava-input" oninput="validarTravaGerar()" class="w-full bg-white border border-red-200 rounded-lg p-2 text-sm text-center font-bold text-red-600 focus:ring-red-500 outline-none" placeholder="Digite GERAR">
+                    <p class="text-xs text-slate-600 mb-2">Para confirmar a geração de um novo mês inteiro, digite
+                        <strong class="text-slate-800">GERAR</strong> no campo abaixo:
+                    </p>
+                    <input type="text" id="gerar-trava-input" oninput="validarTravaGerar()"
+                        class="w-full bg-white border border-red-200 rounded-lg p-2 text-sm text-center font-bold text-red-600 focus:ring-red-500 outline-none"
+                        placeholder="Digite GERAR">
                 </div>
             </div>
             <div class="flex justify-end gap-3 mt-6">
-                <button onclick="fecharModalGerarMes()" class="px-4 py-2 text-slate-500 hover:text-slate-700 font-medium text-sm transition-colors">Cancelar</button>
-                <button id="btn-confirmar-gerar" onclick="confirmarGeracaoMes()" disabled class="px-4 py-2 bg-slate-300 text-white rounded-lg text-sm font-bold shadow-sm cursor-not-allowed transition-colors">Confirmar Geração</button>
+                <button onclick="fecharModalGerarMes()"
+                    class="px-4 py-2 text-slate-500 hover:text-slate-700 font-medium text-sm transition-colors">Cancelar</button>
+                <button id="btn-confirmar-gerar" onclick="confirmarGeracaoMes()" disabled
+                    class="px-4 py-2 bg-slate-300 text-white rounded-lg text-sm font-bold shadow-sm cursor-not-allowed transition-colors">Confirmar
+                    Geração</button>
             </div>
         </div>
     </div>
     <!-- MODAL VIEW FOTO -->
-    <div id="modal-view-foto" class="hidden fixed inset-0 z-[70] items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 transition-opacity duration-300 opacity-0" onclick="fecharModalFoto()">
-        <div class="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()" id="modal-view-foto-content">
+    <div id="modal-view-foto"
+        class="hidden fixed inset-0 z-[70] items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 transition-opacity duration-300 opacity-0"
+        onclick="fecharModalFoto()">
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col transform scale-95 transition-transform duration-300"
+            onclick="event.stopPropagation()" id="modal-view-foto-content">
             <div class="p-3 border-b border-gray-100 flex justify-between items-center bg-slate-50">
                 <h2 class="text-lg font-bold text-slate-800">Foto de Perfil</h2>
-                <button onclick="fecharModalFoto()" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button onclick="fecharModalFoto()"
+                    class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
                 </button>
             </div>
             <div class="p-4 flex items-center justify-center bg-slate-100 min-h-[300px]">
@@ -1615,20 +2057,28 @@
     </div>
 
     <!-- MODAL CROPPER -->
-    <div id="modal-cropper" class="hidden fixed inset-0 z-[60] items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+    <div id="modal-cropper"
+        class="hidden fixed inset-0 z-[60] items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
             <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-slate-50">
                 <h2 class="text-lg font-bold text-slate-800">Ajustar Foto</h2>
-                <button onclick="fecharModalCropper()" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button onclick="fecharModalCropper()"
+                    class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
                 </button>
             </div>
             <div class="p-4 flex-1 bg-black min-h-[300px] flex items-center justify-center">
                 <img id="cropper-image" src="" class="max-w-full max-h-[60vh] object-contain">
             </div>
             <div class="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
-                <button onclick="fecharModalCropper()" class="px-5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-slate-700 rounded-xl shadow-sm font-semibold transition-colors text-sm">Cancelar</button>
-                <button onclick="confirmarCorteFoto()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md font-bold transition-all text-sm">Confirmar e Cortar</button>
+                <button onclick="fecharModalCropper()"
+                    class="px-5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-slate-700 rounded-xl shadow-sm font-semibold transition-colors text-sm">Cancelar</button>
+                <button onclick="confirmarCorteFoto()"
+                    class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md font-bold transition-all text-sm">Confirmar
+                    e Cortar</button>
             </div>
         </div>
     </div>

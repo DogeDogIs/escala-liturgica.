@@ -1988,24 +1988,56 @@ function exportPDF() {
     const printTitle = document.getElementById('print-title-text');
     if (printTitle) printTitle.innerText = mesAno.toUpperCase();
 
-    // Preencher temporariamente inputs vazios com "-" para a impressão
+    // Função para abreviar nomes grandes ("Carlos Eduardo da Silva Nilio" -> "Carlos Eduardo N.")
+    const abbreviateName = (fullName) => {
+        if (!fullName || fullName === '-') return fullName;
+        const parts = fullName.trim().split(' ').filter(p => !['de','da','do','dos','das'].includes(p.toLowerCase()));
+        if (parts.length <= 2) return parts.join(' ');
+        return `${parts[0]} ${parts[1]} ${parts[parts.length-1][0]}.`;
+    };
+
+    // Preencher temporariamente inputs vazios com "-" e abreviar nomes para a impressão
     const nameInputs = document.querySelectorAll('.name-input');
-    const emptyInputs = [];
+    const originalNames = new Map();
+    
     nameInputs.forEach(input => {
-        // Ignora inputs que estão invisíveis (ex: quando há "TODOS CONVOCADOS")
-        if (input.style.display !== 'none' && input.value.trim() === '') {
-            input.value = '-';
-            emptyInputs.push(input);
+        if (input.style.display !== 'none') {
+            const val = input.value.trim();
+            originalNames.set(input, val); // Salva o original
+            
+            if (val === '') {
+                input.value = '-';
+            } else if (val !== '-') {
+                input.value = abbreviateName(val);
+            }
         }
+    });
+
+    // Abreviar dias da semana
+    const dayCells = document.querySelectorAll('.day-cell');
+    const originalDays = new Map();
+    dayCells.forEach(cell => {
+        originalDays.set(cell, cell.innerText);
+        let novoDia = cell.innerText.replace('-feira', '');
+        if (novoDia === 'Sábado') novoDia = 'Sáb.';
+        if (novoDia === 'Domingo') novoDia = 'Dom.';
+        cell.innerText = novoDia;
     });
 
     window.print();
 
     document.title = originalTitle;
 
-    // Reverter os campos para ficarem vazios de novo após imprimir
-    emptyInputs.forEach(input => {
-        input.value = '';
+    // Reverter os campos para ficarem com os nomes originais de novo após imprimir
+    nameInputs.forEach(input => {
+        if (originalNames.has(input)) {
+            input.value = originalNames.get(input);
+        }
+    });
+    dayCells.forEach(cell => {
+        if (originalDays.has(cell)) {
+            cell.innerText = originalDays.get(cell);
+        }
     });
 }
 
