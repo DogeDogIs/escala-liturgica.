@@ -5,6 +5,11 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentFocusedCell = null;
 
+function normalizeString(str) {
+    if (!str) return '';
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
 // Configs Globais (Supabase)
 let sysConfig = {
     eventos: [
@@ -380,15 +385,24 @@ function selectAutocomplete(name, liElement) {
 function getLocalSelectOptionsHTML(selectedValue = '') {
     const defaultLocal = sysConfig.locais[0] || '';
     const cleanSelected = selectedValue ? selectedValue.replace('📍 ', '').replace('📍', '').trim() : defaultLocal;
-    const effectiveSelected = sysConfig.locais.includes(cleanSelected) ? cleanSelected : defaultLocal;
+    
+    // Allow cleanSelected to be the effectiveSelected even if not in the array, so we can preserve it
+    const matchedLocal = sysConfig.locais.find(l => normalizeString(l) === normalizeString(cleanSelected));
+    const effectiveSelected = matchedLocal ? matchedLocal : (cleanSelected || defaultLocal);
 
     let html = '';
+    let found = false;
     sysConfig.locais.forEach((local, idx) => {
         const isDefault = (idx === 0);
-        const label = isDefault ? local : `📍 ${local}`;
-        const isSelected = (local === effectiveSelected);
+        const label = isDefault ? local : `📍 ${local.trim()}`;
+        const isSelected = (normalizeString(local) === normalizeString(effectiveSelected));
+        if (isSelected) found = true;
         html += `<option value="${local}" ${isSelected ? 'selected' : ''}>${label}</option>`;
     });
+    
+    if (!found && effectiveSelected) {
+        html += `<option value="${effectiveSelected}" selected>📍 ${effectiveSelected.trim()}</option>`;
+    }
     return html;
 }
 
@@ -1231,7 +1245,8 @@ function addRow(tableId, data = null) {
     if (localSelect) {
         const savedLocal = (data && data.localVal) ? data.localVal : (sysConfig.locais[0] || '');
         const cleanSaved = savedLocal.replace('📍 ', '').replace('📍', '').trim();
-        const effectiveLocal = sysConfig.locais.includes(cleanSaved) ? cleanSaved : (sysConfig.locais[0] || '');
+        const matchedLocal = sysConfig.locais.find(l => normalizeString(l) === normalizeString(cleanSaved));
+        const effectiveLocal = matchedLocal ? matchedLocal : (cleanSaved || sysConfig.locais[0] || '');
         localSelect.innerHTML = getLocalSelectOptionsHTML(effectiveLocal);
         localSelect.value = effectiveLocal;
         handleLocalChange(localSelect);
@@ -2122,11 +2137,12 @@ function renderConfigFuncoes() {
 
 async function salvarConfiguracaoNoBanco() {
     try {
-        const { error } = await supabaseClient.from('configuracoes').update({
+        const { error } = await supabaseClient.from('configuracoes').upsert({
+            id: 1,
             eventos: sysConfig.eventos,
             locais: sysConfig.locais,
             funcoes_extras: sysConfig.funcoes_extras
-        }).eq('id', 1);
+        });
 
         if (error) throw error;
     } catch (err) {
@@ -3191,9 +3207,9 @@ function renderMobileCards(escalasArray) {
             return `
                 <div class="mobile-card bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-4"
                      data-nome="${nomesBuscaStr}"
-                     data-local="${local.toLowerCase()}"
-                     data-dia="${dia.toLowerCase()}"
-                     data-hora="${hora}">
+                     data-local="${local.trim().toLowerCase()}"
+                     data-dia="${dia.trim().toLowerCase()}"
+                     data-hora="${hora.trim()}">
                     <h3 class="text-lg font-bold text-slate-800">${title}</h3>
                     <div class="flex items-center gap-1.5 text-sm text-slate-500 mt-1">
                         <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
