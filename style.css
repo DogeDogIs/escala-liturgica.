@@ -715,7 +715,31 @@ tbody.linha-separadora-semana td {
 }
 
 .dropdown-menu.show {
-    display: block;
+    display: flex;
+    flex-direction: column;
+}
+
+.dropdown-events-list {
+    overflow-y: auto;
+    max-height: 260px;
+    overscroll-behavior: contain;
+}
+
+.dropdown-events-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-events-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.dropdown-events-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.dropdown-events-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 .dropdown-header {
@@ -761,50 +785,90 @@ hr {
 }
 
 /* Sub-list Vertical Compacta */
-.sublist-row td {
-    padding: 0 !important;
-    border-top: none;
-    background: rgba(0, 0, 0, 0.02) !important;
+.sublist-print-cell,
+.sublist-print-badge {
+    display: none;
 }
 
+/* Sub-list Vertical Compacta na Edição */
+tbody.bloco-missa {
+    --branch-line-color: #cbd5e1;
+    transition: background-color 0.15s ease;
+}
+
+tbody.bloco-missa.has-sublist-open {
+    background-color: #f8fafc;
+}
+
+/* Contorno e linha vertical esquerda de 2px ("galho") */
+tbody.bloco-missa.has-sublist-open > tr.main-row td:first-child,
+tbody.bloco-missa.has-sublist-open > tr.sublist-row td:first-child {
+    border-left: 2px solid var(--branch-line-color, #cbd5e1) !important;
+}
+
+tbody.bloco-missa.has-sublist-open > tr.main-row td {
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+tbody.bloco-missa.has-sublist-open > tr.sublist-row td {
+    border-top: none !important;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0 8px 6px 8px !important;
+    background: transparent !important;
+}
+
+/* O container da sub-lista recuado 24px em relação à linha vertical */
 .sublist-container {
-    padding: 6px 12px;
-    border-left: 3px solid var(--color-gold);
-    margin-bottom: 2px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    position: relative;
+    margin-left: 24px;
+    margin-top: 0;
+    margin-bottom: 4px;
+    padding: 6px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #ffffff;
+    box-shadow: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.sublist-header-flex {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
+/* Conector curvo estilo "galho" saindo da linha vertical esquerda */
+.sublist-container::before {
+    content: '';
+    position: absolute;
+    left: -18px;
+    top: -1px;
+    width: 14px;
+    height: 16px;
+    border-left: 2px solid var(--branch-line-color, #cbd5e1);
+    border-bottom: 2px solid var(--branch-line-color, #cbd5e1);
+    border-bottom-left-radius: 6px;
+    pointer-events: none;
 }
 
-.sublist-title {
-    font-weight: bold;
-    color: var(--color-wine);
+.sublist-title-text {
     font-size: 0.78rem;
-    text-transform: uppercase;
-}
-
-.btn-sublist-toggle {
-    background: #f1f3f5;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    padding: 3px 8px;
-    font-size: 0.75rem;
     font-weight: 600;
-    color: var(--color-wine);
-    cursor: pointer;
-    transition: all 0.2s;
+    color: #334155;
+    text-transform: none;
+    letter-spacing: normal;
 }
 
-.btn-sublist-toggle:hover {
-    background: var(--color-wine);
-    color: white;
+.btn-sublist-toggle-sm {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-sublist-toggle-sm:hover {
+    background: #f1f5f9;
+    color: #1e40af;
+    border-color: #93c5fd;
 }
 
 /* Fullscreen Sublist Modal Mode */
@@ -826,105 +890,111 @@ hr {
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.3) !important;
     display: flex !important;
     flex-direction: column !important;
+    margin: 0 !important;
 }
 
-.sublist-container.sublist-fullscreen .sublist-header-flex {
-    padding-bottom: 12px;
-    border-bottom: 2px solid var(--color-wine);
-    margin-bottom: 15px;
+.sublist-container.sublist-fullscreen::before {
+    display: none !important;
 }
 
-.sublist-container.sublist-fullscreen .sublist-title {
-    font-size: 1.1rem;
-}
-
-.sublist-container.sublist-fullscreen .btn-sublist-toggle {
+.sublist-container.sublist-fullscreen .btn-sublist-toggle-sm {
     background: #22c55e !important;
     color: #ffffff !important;
-    padding: 8px 16px !important;
-    font-size: 0.95rem !important;
+    padding: 6px 14px !important;
+    font-size: 0.85rem !important;
     border: none !important;
     box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4) !important;
 }
 
 .sublist-container.sublist-fullscreen .role-item {
-    padding: 12px !important;
-    margin-bottom: 10px !important;
+    padding: 8px 14px !important;
     border-radius: 8px !important;
+    width: 100% !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
 }
 
 .sublist-container.sublist-fullscreen .role-select,
 .sublist-container.sublist-fullscreen .role-val {
-    min-height: 48px !important;
-    font-size: 1rem !important;
+    min-height: 40px !important;
+    font-size: 0.95rem !important;
 }
 
+/* Pílulas de função lado a lado com flex-wrap */
 .sublist-roles {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
 }
 
 .role-item {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
-    background: white;
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 1px solid var(--color-border);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 9999px;
+    padding: 2.5px 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    max-width: 100%;
+}
+
+.role-item:hover,
+.role-item:focus-within {
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .role-select {
-    padding: 4px 6px;
-    border-radius: 4px;
-    border: 1px solid var(--color-border);
-    font-family: inherit;
-    font-size: 0.85rem;
+    border: none;
+    background: transparent;
+    padding: 0 4px 0 0;
+    font-size: 0.75rem;
     font-weight: 600;
-    min-width: 130px;
-    background-color: #f8f9fa;
+    color: #334155;
     cursor: pointer;
     outline: none;
+    min-width: auto;
+    width: auto;
 }
 
 .role-select:focus {
-    border-color: var(--color-gold);
+    color: #1e40af;
 }
 
 .role-val {
-    flex: 1;
     border: none;
-    border-bottom: 1px solid var(--color-border);
-    min-height: 18px;
-    padding: 2px 5px;
-    font-size: 0.9rem;
+    border-bottom: none;
     background: transparent;
+    padding: 0 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #0f172a;
     outline: none;
-    font-family: inherit;
+    min-height: auto;
+    width: 6.5rem;
+    transition: width 0.2s ease;
 }
 
-.btn-remove-role {
-    background: none;
-    border: none;
-    color: #999;
-    font-size: 1.2rem;
+.role-val:focus {
+    width: 8.5rem;
+}
+
+.btn-add-role-pill {
     cursor: pointer;
-    margin-left: 0;
-    padding: 0 5px;
+    transition: all 0.15s ease;
 }
 
-.btn-remove-role:hover {
-    color: #d32f2f;
+/* Destaque cruzado entre missa e sub-lista */
+tr.main-row.cross-focus-active td {
+    background-color: rgba(239, 246, 255, 0.85) !important;
 }
 
-.btn-add-role {
-    align-self: flex-start;
-    font-size: 0.8rem;
-    padding: 4px 8px;
-    margin-top: 0;
+.sublist-container.cross-focus-active {
+    background-color: rgba(239, 246, 255, 0.95) !important;
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
 }
 
 /* Modal Configurações (Centered) */
@@ -1253,8 +1323,7 @@ hr {
 
     .time-input,
     .name-input,
-    .local-select,
-    .role-select {
+    .local-select {
         min-height: 44px;
         font-size: 14px;
     }
@@ -1277,28 +1346,58 @@ hr {
     /* Sub-list responsiva no mobile (Sem position: sticky para evitar bugs de toque no navegador) */
     .sublist-row td {
         position: relative;
+        overflow: hidden;
     }
 
     .sublist-container {
         position: relative;
         left: 0;
-        width: 100%;
+        margin-left: 14px;
+        padding: 5px 8px;
+        max-width: calc(100% - 16px);
         box-sizing: border-box;
     }
 
-    .sublist-roles .role-item {
+    .sublist-container::before {
+        left: -11px;
+        width: 9px;
+    }
+
+    .sublist-roles {
+        display: flex;
+        flex-direction: row;
         flex-wrap: wrap;
+        align-items: center;
         gap: 6px;
+        width: 100%;
+    }
+
+    .sublist-roles .role-item {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        padding: 2px 6px;
+        max-width: 100%;
     }
 
     .sublist-roles .role-select {
-        flex: 1 1 120px;
-        min-height: 44px;
+        font-size: 11px;
+        min-height: auto;
+        flex: none;
+        max-width: 110px;
     }
 
     .sublist-roles .role-val {
-        flex: 2 1 140px;
-        min-height: 44px;
+        font-size: 11px;
+        min-height: auto;
+        flex: 1 1 55px;
+        min-width: 45px;
+        width: 4rem;
+    }
+
+    .sublist-roles .btn-add-role-pill {
+        padding: 2px 8px;
+        font-size: 11px;
     }
 
     /* Make FAB buttons horizontal on bottom for mobile */
@@ -1554,9 +1653,16 @@ hr {
         page-break-inside: auto;
     }
 
+    /* Evita quebra de página dentro do conjunto missa + sub-lista */
+    tbody.bloco-missa {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
     .escala-table tr,
     .sublist-row {
-        page-break-inside: avoid;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
         page-break-after: auto;
     }
 
@@ -1605,42 +1711,132 @@ hr {
         display: none !important;
     }
 
-    /* Sublist Impressão Visual Limpa */
+    /* Sublist na Impressão: Linha compacta e discreta ligada visualmente à missa */
+    /* Sub-lista na Impressão (.sublist-print) */
     .sublist-container {
-        padding: 6px 10px !important;
-        border: 1px solid #ccc !important;
-        background: transparent !important;
-        margin-bottom: 0;
+        display: none !important;
     }
 
-    .sublist-roles {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 3px !important;
-    }
-
-    .role-item {
-        border: none !important;
-        border-bottom: 1px dashed #ccc !important;
-        border-radius: 0 !important;
-        padding: 2px 0 !important;
-        box-shadow: none !important;
-    }
-
-    .role-item:last-child {
+    tr.has-sublist-print td,
+    #table-coroinhas tr.has-sublist-print td,
+    #table-cerimoniarios tr.has-sublist-print td,
+    .escala-table tr.has-sublist-print td {
         border-bottom: none !important;
+        padding-bottom: 1px !important;
     }
 
-    .role-select {
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        border: none !important;
-        background: transparent !important;
+    .sublist-row-print,
+    tr.sublist-row-print,
+    #table-coroinhas tr.sublist-row-print,
+    #table-cerimoniarios tr.sublist-row-print,
+    .escala-table tr.sublist-row-print {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .sublist-row-print td,
+    tr.sublist-row-print td,
+    #table-coroinhas .sublist-row td,
+    #table-cerimoniarios .sublist-row td,
+    .escala-table tr.sublist-row-print td {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        white-space: normal !important;
+        text-overflow: clip !important;
+        border-top: none !important;
+        border-bottom: 1px solid #000 !important;
+        padding-top: 1px !important;
+        padding-bottom: 2px !important;
+        background: inherit !important;
+        background-color: inherit !important;
+    }
+
+    td.sublist-print-cell,
+    .sublist-print-cell,
+    #table-coroinhas .sublist-row td.sublist-print-cell,
+    #table-cerimoniarios .sublist-row td.sublist-print-cell {
+        display: table-cell !important;
+    }
+
+    td.sublist-print-empty,
+    #table-coroinhas .sublist-row td.sublist-print-empty,
+    #table-cerimoniarios .sublist-row td.sublist-print-empty {
         padding: 0 !important;
-        margin: 0 !important;
-        font-weight: bold;
-        color: #000;
+    }
+
+    td.sublist-print-content,
+    #table-coroinhas .sublist-row td.sublist-print-content,
+    #table-cerimoniarios .sublist-row td.sublist-print-content {
+        padding: 1px 3px !important;
+        vertical-align: middle !important;
+        text-align: left !important;
+    }
+
+    /* Faixa de fundo #e2e8f0 com cantos de 3px e padding 2px 8px */
+    #table-coroinhas .sublist-row .sublist-print,
+    #table-cerimoniarios .sublist-row .sublist-print,
+    .sublist-row .sublist-print,
+    .sublist-print {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        background-color: #e2e8f0 !important;
+        border-radius: 3px !important;
+        padding: 2px 8px !important;
+        line-height: 1.25 !important;
+        font-size: 10px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        white-space: normal !important;
+        overflow: visible !important;
+    }
+
+    /* Nome da pessoa: mesma regra, font-size (10px), font-weight (bold/700) e cor (#000) de Cruciferário */
+    table#table-cerimoniarios td:nth-child(5) input,
+    #table-coroinhas .sublist-row .sublist-print .sublist-print-name,
+    #table-cerimoniarios .sublist-row .sublist-print .sublist-print-name,
+    .sublist-print .sublist-print-name {
+        font-size: 10px !important;
+        font-weight: bold !important;
+        color: #000 !important;
+    }
+
+    /* Nome da função ("Turíbulo:"): mesmo tamanho (10px), peso 600, cor #334155 */
+    #table-coroinhas .sublist-row .sublist-print .sublist-print-func,
+    #table-cerimoniarios .sublist-row .sublist-print .sublist-print-func,
+    .sublist-print .sublist-print-func {
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        color: #334155 !important;
+    }
+
+    /* "↳" e " · ": mesmo tamanho (10px), cor #64748b */
+    #table-coroinhas .sublist-row .sublist-print .sublist-print-arrow,
+    #table-cerimoniarios .sublist-row .sublist-print .sublist-print-arrow,
+    .sublist-print .sublist-print-arrow {
+        font-size: 10px !important;
+        font-weight: bold !important;
+        color: #64748b !important;
+        margin-right: 4px !important;
+    }
+
+    #table-coroinhas .sublist-row .sublist-print .sublist-print-sep,
+    #table-cerimoniarios .sublist-row .sublist-print .sublist-print-sep,
+    .sublist-print .sublist-print-sep {
+        font-size: 10px !important;
+        font-weight: normal !important;
+        color: #64748b !important;
+        margin: 0 6px !important;
+    }
+
+    /* Permitir que o texto do local quebre em vez de ser cortado */
+    .col-local,
+    .local-cell,
+    .local-select {
+        white-space: normal !important;
+        word-break: break-word !important;
     }
 
     /* Badges e Cores de Fundo na Impressão */

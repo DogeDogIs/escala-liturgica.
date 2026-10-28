@@ -381,10 +381,120 @@
                 page-break-inside: avoid !important;
             }
 
+            /* Sub-lista na Impressão (.sublist-print) */
             .sublist-container {
-                padding: 4px !important;
-                margin-bottom: 2px !important;
-                margin-top: 2px !important;
+                display: none !important;
+            }
+
+            tr.has-sublist-print td,
+            #table-coroinhas tr.has-sublist-print td,
+            #table-cerimoniarios tr.has-sublist-print td {
+                border-bottom: none !important;
+                padding-bottom: 1px !important;
+            }
+
+            .sublist-row-print,
+            tr.sublist-row-print,
+            #table-coroinhas tr.sublist-row-print,
+            #table-cerimoniarios tr.sublist-row-print {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .sublist-row-print td,
+            tr.sublist-row-print td,
+            #table-coroinhas .sublist-row td,
+            #table-cerimoniarios .sublist-row td {
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow: visible !important;
+                white-space: normal !important;
+                text-overflow: clip !important;
+                border-top: none !important;
+                border-bottom: 1px solid #000 !important;
+                padding-top: 1px !important;
+                padding-bottom: 2px !important;
+                background: inherit !important;
+                background-color: inherit !important;
+            }
+
+            td.sublist-print-cell,
+            .sublist-print-cell,
+            #table-coroinhas .sublist-row td.sublist-print-cell,
+            #table-cerimoniarios .sublist-row td.sublist-print-cell {
+                display: table-cell !important;
+            }
+
+            td.sublist-print-empty,
+            #table-coroinhas .sublist-row td.sublist-print-empty,
+            #table-cerimoniarios .sublist-row td.sublist-print-empty {
+                padding: 0 !important;
+            }
+
+            td.sublist-print-content,
+            #table-coroinhas .sublist-row td.sublist-print-content,
+            #table-cerimoniarios .sublist-row td.sublist-print-content {
+                padding: 1px 3px !important;
+                vertical-align: middle !important;
+                text-align: left !important;
+            }
+
+            /* Faixa de fundo #e2e8f0 com cantos de 3px e padding 2px 8px */
+            #table-coroinhas .sublist-row .sublist-print,
+            #table-cerimoniarios .sublist-row .sublist-print,
+            .sublist-row .sublist-print,
+            .sublist-print {
+                display: block !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                background-color: #e2e8f0 !important;
+                border-radius: 3px !important;
+                padding: 2px 8px !important;
+                line-height: 1.25 !important;
+                font-size: 10px !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                white-space: normal !important;
+                overflow: visible !important;
+            }
+
+            /* Nome da pessoa: mesma regra, font-size (10px), font-weight (bold/700) e cor (#000) de Cruciferário */
+            table#table-cerimoniarios td:nth-child(5) input,
+            #table-coroinhas .sublist-row .sublist-print .sublist-print-name,
+            #table-cerimoniarios .sublist-row .sublist-print .sublist-print-name,
+            .sublist-print .sublist-print-name {
+                font-size: 10px !important;
+                font-weight: bold !important;
+                color: #000 !important;
+            }
+
+            /* Nome da função ("Turíbulo:"): mesmo tamanho (10px), peso 600, cor #334155 */
+            #table-coroinhas .sublist-row .sublist-print .sublist-print-func,
+            #table-cerimoniarios .sublist-row .sublist-print .sublist-print-func,
+            .sublist-print .sublist-print-func {
+                font-size: 10px !important;
+                font-weight: 600 !important;
+                color: #334155 !important;
+            }
+
+            /* "↳" e " · ": mesmo tamanho (10px), cor #64748b */
+            #table-coroinhas .sublist-row .sublist-print .sublist-print-arrow,
+            #table-cerimoniarios .sublist-row .sublist-print .sublist-print-arrow,
+            .sublist-print .sublist-print-arrow {
+                font-size: 10px !important;
+                font-weight: bold !important;
+                color: #64748b !important;
+                margin-right: 4px !important;
+            }
+
+            #table-coroinhas .sublist-row .sublist-print .sublist-print-sep,
+            #table-cerimoniarios .sublist-row .sublist-print .sublist-print-sep,
+            .sublist-print .sublist-print-sep {
+                font-size: 10px !important;
+                font-weight: normal !important;
+                color: #64748b !important;
+                margin: 0 6px !important;
             }
 
             .event-badge {
@@ -1665,7 +1775,7 @@
             <td class="colorable time-cell px-3 py-2.5 whitespace-nowrap align-middle">
                 <input type="time"
                     class="time-input min-w-[90px] w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-slate-700 shadow-sm"
-                    onchange="saveData()">
+                    onchange="handleTimeChange(this); saveData();">
             </td>
             <td class="colorable local-cell col-local px-3 py-2.5 whitespace-nowrap align-middle">
                 <select
@@ -1745,7 +1855,7 @@
             <td class="colorable time-cell px-3 py-2.5 whitespace-nowrap align-middle">
                 <input type="time"
                     class="time-input min-w-[90px] w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-slate-700 shadow-sm"
-                    onchange="saveData()">
+                    onchange="handleTimeChange(this); saveData();">
             </td>
             <td class="colorable local-cell col-local px-3 py-2.5 whitespace-nowrap align-middle">
                 <select

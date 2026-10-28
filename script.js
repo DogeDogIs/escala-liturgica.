@@ -191,7 +191,12 @@ function toggleSidebar() {
 
 function hexToRgba(hex, alpha) {
     if (!hex) return '';
-    if (hex.startsWith('rgb')) return hex;
+    if (hex.startsWith('rgba')) {
+        return hex.replace(/,\s*[\d\.]+\)$/, `, ${alpha})`);
+    }
+    if (hex.startsWith('rgb(')) {
+        return hex.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+    }
     let r = 0, g = 0, b = 0;
     if (hex.length == 4) {
         r = parseInt(hex[1] + hex[1], 16); g = parseInt(hex[2] + hex[2], 16); b = parseInt(hex[3] + hex[3], 16);
@@ -227,8 +232,13 @@ document.addEventListener('click', (e) => {
     }
 
     // Fechar dropdown de ações se clicar fora
-    if (!e.target.closest('.dropdown') && !e.target.closest('.dropdown-menu')) {
-        document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    if (!e.target.closest('.dropdown') && !e.target.closest('.dropdown-menu') && !e.target.closest('.dropdown-events-list')) {
+        document.querySelectorAll('.dropdown-menu.show').forEach(m => {
+            m.classList.remove('show');
+            m.style.maxHeight = '';
+            m.style.display = '';
+            m.style.flexDirection = '';
+        });
         const backdrop = document.getElementById('dropdown-backdrop');
         if (backdrop) backdrop.classList.remove('show');
     }
@@ -236,26 +246,121 @@ document.addEventListener('click', (e) => {
 
 // Fechar dropdowns e autocomplete se o usuário rolar a página ou a tabela (mas permitir rolar a própria lista)
 window.addEventListener('scroll', (e) => {
-    if (e.target && e.target.closest && (e.target.closest('.autocomplete-list') || e.target.closest('.dropdown-menu'))) {
+    if (e.target && e.target.closest && (e.target.closest('.autocomplete-list') || e.target.closest('.dropdown-menu') || e.target.closest('.dropdown-events-list'))) {
         return;
     }
-    document.querySelectorAll('.autocomplete-list.show, .dropdown-menu.show').forEach(el => el.classList.remove('show'));
+    document.querySelectorAll('.autocomplete-list.show, .dropdown-menu.show').forEach(el => {
+        el.classList.remove('show');
+        el.style.maxHeight = '';
+        el.style.display = '';
+        el.style.flexDirection = '';
+    });
     const backdrop = document.getElementById('dropdown-backdrop');
     if (backdrop) backdrop.classList.remove('show');
 }, true);
 
+// Destaque cruzado entre Missa e Sub-lista
+document.addEventListener('focusin', (e) => {
+    const bloco = e.target.closest('tbody.bloco-missa');
+    if (!bloco) return;
+    const mainRow = bloco.querySelector('.main-row');
+    const sublistRow = bloco.querySelector('.sublist-row');
+    if (!mainRow || !sublistRow) return;
+
+    if (sublistRow.contains(e.target)) {
+        mainRow.classList.add('cross-focus-active');
+    } else if (mainRow.contains(e.target)) {
+        const subContainer = sublistRow.querySelector('.sublist-container');
+        if (subContainer) subContainer.classList.add('cross-focus-active');
+    }
+});
+
+document.addEventListener('focusout', (e) => {
+    const bloco = e.target.closest('tbody.bloco-missa');
+    if (!bloco) return;
+    const mainRow = bloco.querySelector('.main-row');
+    const sublistRow = bloco.querySelector('.sublist-row');
+    if (mainRow) mainRow.classList.remove('cross-focus-active');
+    if (sublistRow) {
+        const subContainer = sublistRow.querySelector('.sublist-container');
+        if (subContainer) subContainer.classList.remove('cross-focus-active');
+    }
+});
+
+// Propagação de data, horário e local entre tabelas
+function handleTimeChange(timeInput) {
+    if (!timeInput) return;
+    const tr = timeInput.closest('tr');
+    if (!tr || !tr.id) return;
+    const val = timeInput.value;
+    const matchingRows = document.querySelectorAll(`[id="${tr.id}"]`);
+    matchingRows.forEach(otherRow => {
+        if (otherRow !== tr) {
+            const otherTimeInput = otherRow.querySelector('.time-input');
+            if (otherTimeInput && otherTimeInput.value !== val) {
+                otherTimeInput.value = val;
+            }
+            if (typeof atualizarTituloSublista === 'function') atualizarTituloSublista(otherRow);
+        }
+    });
+    if (typeof atualizarTituloSublista === 'function') atualizarTituloSublista(tr);
+}
+
+document.addEventListener('change', (e) => {
+    if (!e.target || !e.target.classList) return;
+    if (e.target.classList.contains('time-input')) {
+        handleTimeChange(e.target);
+    } else if (e.target.classList.contains('local-select')) {
+        handleLocalChange(e.target);
+    } else if (e.target.classList.contains('date-input')) {
+        calculateDayOfWeek(e.target);
+    }
+});
+
+document.addEventListener('input', (e) => {
+    if (!e.target || !e.target.classList) return;
+    if (e.target.classList.contains('time-input')) {
+        const tr = e.target.closest('tr');
+        if (tr && typeof atualizarTituloSublista === 'function') atualizarTituloSublista(tr);
+    }
+});
 
 function calculateDayOfWeek(inputElement) {
     const dateStr = inputElement.value;
-    if (!dateStr) return;
-    const parts = dateStr.split('-');
-    const date = new Date(parts[0], parts[1] - 1, parts[2]);
-    const dias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
     const tr = inputElement.closest('tr');
+    if (!tr) return;
+
+    const dias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+    let diaSemana = '';
+    if (dateStr) {
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            const date = new Date(parts[0], parts[1] - 1, parts[2]);
+            diaSemana = dias[date.getDay()] || '';
+        }
+    }
+
     const dayCell = tr.querySelector('.day-cell');
-    if (dayCell) dayCell.innerText = dias[date.getDay()];
+    if (dayCell) dayCell.innerText = diaSemana;
 
     const rowId = tr.id;
+    if (rowId) {
+        const matchingRows = document.querySelectorAll(`[id="${rowId}"]`);
+        matchingRows.forEach(otherRow => {
+            if (otherRow !== tr) {
+                const otherDateInput = otherRow.querySelector('.date-input');
+                if (otherDateInput && otherDateInput.value !== dateStr) {
+                    otherDateInput.value = dateStr;
+                }
+                const otherDayCell = otherRow.querySelector('.day-cell');
+                if (otherDayCell) otherDayCell.innerText = diaSemana;
+                if (typeof atualizarTituloSublista === 'function') atualizarTituloSublista(otherRow);
+            }
+        });
+    }
+
+    if (typeof atualizarTituloSublista === 'function') atualizarTituloSublista(tr);
+
     ordenarTodasTabelas();
 
     if (rowId) destacarLinha(rowId);
@@ -930,7 +1035,12 @@ async function saveConfigAndClose() {
 
 // --- DROPDOWNS E EVENTOS ---
 function closeAllDropdowns() {
-    document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+    document.querySelectorAll('.dropdown-menu').forEach(m => {
+        m.classList.remove('show');
+        m.style.maxHeight = '';
+        m.style.display = '';
+        m.style.flexDirection = '';
+    });
     document.querySelectorAll('.autocomplete-list').forEach(ul => ul.classList.remove('show'));
     const backdrop = document.getElementById('dropdown-backdrop');
     if (backdrop) backdrop.classList.remove('show');
@@ -965,6 +1075,7 @@ function toggleDropdown(btn) {
         menu.style.marginTop = '';
         menu.style.marginBottom = '';
         menu.style.transformOrigin = '';
+        menu.style.maxHeight = '';
 
         menu.classList.add('show');
 
@@ -972,21 +1083,30 @@ function toggleDropdown(btn) {
         const btnRect = btn.getBoundingClientRect();
         menu.style.position = 'fixed';
         menu.style.zIndex = '999999';
+        menu.style.display = 'flex';
+        menu.style.flexDirection = 'column';
+        menu.style.boxSizing = 'border-box';
+        menu.style.overflow = 'hidden';
 
-        const menuWidth = 224; // w-56 is 224px
+        const menuWidth = 240;
+        menu.style.width = menuWidth + 'px';
         menu.style.left = Math.max(10, btnRect.right - menuWidth) + 'px';
 
-        const menuHeight = menu.offsetHeight || 200;
         const spaceBelow = window.innerHeight - btnRect.bottom;
         const spaceAbove = btnRect.top;
 
-        if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+        // Calcular o espaço disponível (acima ou abaixo do botão, o que for maior, menos 16px de margem)
+        if (spaceAbove > spaceBelow) {
             // Abre para cima
+            const maxH = Math.max(100, spaceAbove - 16);
+            menu.style.maxHeight = maxH + 'px';
             menu.style.top = 'auto';
             menu.style.bottom = (window.innerHeight - btnRect.top + 4) + 'px';
             menu.style.transformOrigin = 'bottom right';
         } else {
             // Abre para baixo
+            const maxH = Math.max(100, spaceBelow - 16);
+            menu.style.maxHeight = maxH + 'px';
             menu.style.top = (btnRect.bottom + 4) + 'px';
             menu.style.bottom = 'auto';
             menu.style.transformOrigin = 'top right';
@@ -1004,26 +1124,33 @@ function toggleDropdown(btn) {
 }
 
 function getDropdownHTML(hasSublist) {
-    let html = `<div class="dropdown-header">Eventos:</div>`;
-    sysConfig.eventos.forEach(ev => {
-        html += `<button class="dropdown-item" onclick="applyEvent(this, '${ev.nome}')">
-                    <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:${ev.cor}; margin-right:8px; border:1px solid #ccc;"></span>
-                    ${ev.nome} ${ev.todos_participam ? '(Convocação)' : ''}
-                 </button>`;
-    });
+    let html = `
+        <div class="dropdown-actions-fixed" style="flex-shrink: 0;">
+            <button type="button" class="dropdown-item" onclick="toggleSublist(this)">
+                ${hasSublist ? '➖ Ocultar Sub-lista' : '➕ Exibir Sub-lista'}
+            </button>
+            <button type="button" class="dropdown-item" onclick="abrirModalPintura(this)">
+                🎨 Pintar Células
+            </button>
+            <button type="button" class="dropdown-item text-danger" style="color: #dc2626;" onclick="applyEvent(this, null)">
+                ↺ Remover Evento (Restaurar Padrão)
+            </button>
+        </div>
+        <hr style="margin: 4px 0; border: none; border-top: 1px solid #e2e8f0; flex-shrink: 0;">
+        <div class="dropdown-header" style="flex-shrink: 0; padding: 6px 15px 4px 15px;">Eventos:</div>
+        <div class="dropdown-events-list" style="overflow-y: auto; max-height: 260px; flex: 1 1 auto; min-height: 0;">
+    `;
 
-    html += `<div class="border-t border-slate-100 my-1 pt-1"></div>`;
-    html += `<button class="w-full text-left px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded flex items-center gap-2 transition-colors" onclick="applyEvent(this, null)">↺ Remover Evento (Restaurar Padrão)</button>`;
+    if (sysConfig && Array.isArray(sysConfig.eventos)) {
+        sysConfig.eventos.forEach(ev => {
+            html += `<button type="button" class="dropdown-item" onclick="applyEvent(this, '${ev.nome}')">
+                        <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:${ev.cor}; margin-right:8px; border:1px solid #ccc;"></span>
+                        ${ev.nome} ${ev.todos_participam ? '(Convocação)' : ''}
+                     </button>`;
+        });
+    }
 
-    html += `<hr><div class="dropdown-header">Opções de Linha:</div>`;
-    html += `<button class="dropdown-item" onclick="abrirModalPintura(this)">🎨 Pintar Células</button>`;
-
-    html += `<hr><div class="dropdown-header">Sub-lista de Funções:</div>`;
-    html += `<div class="relative ml-2 pl-3 border-l-2 border-slate-200 space-y-1">
-                <button class="w-full text-left text-slate-600 hover:text-blue-700 hover:bg-blue-50/60 rounded px-2 py-1.5 transition-colors text-sm font-medium" onclick="toggleSublist(this)">
-                    ${hasSublist ? '➖ Ocultar Sub-lista' : '➕ Exibir Sub-lista'}
-                </button>
-             </div>`;
+    html += `</div>`;
     return html;
 }
 
@@ -1032,8 +1159,13 @@ function toggleSublist(btn) {
     const tr = btn.closest('.main-row');
     const tableId = tr.closest('table').id;
     const type = tableId.includes('coroinhas') ? 'coroinhas' : 'cerimoniarios';
-    if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('sublist-row')) tr.nextElementSibling.remove();
-    else createSublist(tr, type);
+    const tbody = tr.closest('.bloco-missa');
+    if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('sublist-row')) {
+        tr.nextElementSibling.remove();
+        if (tbody) tbody.classList.remove('has-sublist-open');
+    } else {
+        createSublist(tr, type);
+    }
     saveData();
 }
 
@@ -1089,6 +1221,8 @@ function applyEvent(btn, eventId) {
         tr.dataset.wasGeneral = 'false';
         if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('sublist-row')) {
             tr.nextElementSibling.remove();
+            const tbody = tr.closest('.bloco-missa');
+            if (tbody) tbody.classList.remove('has-sublist-open');
         }
         removeGeneralDOM(tr, type);
     }
@@ -1128,6 +1262,7 @@ function applyEvent(btn, eventId) {
             }
         }
     }
+    atualizarTituloSublista(tr);
     saveData();
     syncToSupabase();
 }
@@ -1147,6 +1282,29 @@ function handleLocalChange(selectEl) {
             td.classList.remove('local-highlight');
         }
     }
+
+    const tr = selectEl.closest('tr');
+    if (tr && tr.id) {
+        const matchingRows = document.querySelectorAll(`[id="${tr.id}"]`);
+        matchingRows.forEach(otherRow => {
+            if (otherRow !== tr) {
+                const otherSelect = otherRow.querySelector('.local-select');
+                if (otherSelect && otherSelect.value !== val) {
+                    otherSelect.value = val;
+                    const otherTd = otherSelect.closest('td');
+                    if (otherTd) {
+                        if (val && val !== defaultLocal) {
+                            otherTd.classList.add('local-highlight');
+                        } else {
+                            otherTd.classList.remove('local-highlight');
+                        }
+                    }
+                    atualizarTituloSublista(otherRow);
+                }
+            }
+        });
+        atualizarTituloSublista(tr);
+    }
 }
 
 function getRoleSelectOptionsHTML(selectedValue = '') {
@@ -1158,6 +1316,130 @@ function getRoleSelectOptionsHTML(selectedValue = '') {
     });
     if (selectedValue && !found) options += `<option value="${selectedValue}" selected>${selectedValue}</option>`;
     return options;
+}
+
+function atualizarTituloSublista(mainRow) {
+    if (!mainRow) return;
+    const tbody = mainRow.closest('.bloco-missa');
+    let sublistRow = null;
+    if (mainRow.nextElementSibling && mainRow.nextElementSibling.classList.contains('sublist-row')) {
+        sublistRow = mainRow.nextElementSibling;
+    } else if (tbody) {
+        sublistRow = tbody.querySelector('.sublist-row');
+    }
+
+    if (!sublistRow) {
+        if (tbody) tbody.classList.remove('has-sublist-open');
+        return;
+    }
+    if (tbody) tbody.classList.add('has-sublist-open');
+
+    // 1. Data e dia da semana
+    const dateInput = mainRow.querySelector('.date-input');
+    const dayCell = mainRow.querySelector('.day-cell');
+    let diaSemana = dayCell ? dayCell.innerText.trim() : '';
+
+    const dias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+    let dataFormatada = '';
+    if (dateInput && dateInput.value) {
+        const parts = dateInput.value.split('-');
+        if (parts.length === 3) {
+            dataFormatada = `${parts[2]}/${parts[1]}`; // dd/mm
+            if (!diaSemana) {
+                const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                diaSemana = dias[dateObj.getDay()] || '';
+            }
+        }
+    } else {
+        diaSemana = '';
+    }
+
+    let dataParte = '';
+    if (diaSemana && dataFormatada) {
+        dataParte = `${diaSemana}, ${dataFormatada}`;
+    } else if (diaSemana) {
+        dataParte = diaSemana;
+    } else if (dataFormatada) {
+        dataParte = dataFormatada;
+    }
+
+    // 2. Horário
+    const timeInput = mainRow.querySelector('.time-input');
+    const horario = (timeInput && timeInput.value) ? timeInput.value.trim() : '';
+
+    // 3. Local
+    const localSelect = mainRow.querySelector('.local-select');
+    let local = '';
+    if (localSelect && localSelect.value) {
+        local = localSelect.value.replace(/📍/g, '').trim();
+    }
+
+    // Montar texto do título
+    const partes = ['Funções extras'];
+    if (dataParte) partes.push(dataParte);
+    if (horario) partes.push(horario);
+    if (local) partes.push(local);
+
+    const tituloFinal = partes.join(' · ');
+
+    const titleEl = sublistRow.querySelector('.sublist-title-text');
+    if (titleEl) {
+        titleEl.textContent = tituloFinal;
+    }
+
+    // 4. Selo de evento
+    const badgeSlot = sublistRow.querySelector('.sublist-event-badge-slot');
+    const container = sublistRow.querySelector('.sublist-container');
+    const eventId = mainRow.dataset.eventId;
+    let corEvento = null;
+    let nomeEvento = '';
+
+    if (eventId && sysConfig && Array.isArray(sysConfig.eventos)) {
+        const ev = sysConfig.eventos.find(e => e.nome === eventId);
+        if (ev) {
+            corEvento = ev.cor || '#3b82f6';
+            nomeEvento = ev.nome;
+        }
+    }
+
+    if (badgeSlot) {
+        if (corEvento && nomeEvento) {
+            badgeSlot.innerHTML = `<span class="sublist-event-badge inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold" style="background:${hexToRgba(corEvento, 0.14)}; color:#1e293b; border:1px solid ${hexToRgba(corEvento, 0.35)};">
+                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${corEvento}; flex-shrink:0;"></span>
+                <span>${nomeEvento}</span>
+            </span>`;
+            badgeSlot.style.display = 'inline-flex';
+        } else {
+            badgeSlot.innerHTML = '';
+            badgeSlot.style.display = 'none';
+        }
+    }
+
+    // 5. Cor do galho e fundo da sub-lista (evento ou pintura)
+    let corPintura = corEvento;
+    if (!corPintura && mainRow.style.backgroundColor && mainRow.style.backgroundColor !== 'transparent') {
+        corPintura = mainRow.style.backgroundColor;
+    }
+
+    if (tbody) {
+        if (corPintura) {
+            tbody.style.setProperty('--branch-line-color', corPintura);
+            tbody.classList.add('has-event');
+        } else {
+            tbody.style.setProperty('--branch-line-color', '#cbd5e1');
+            tbody.classList.remove('has-event');
+        }
+    }
+
+    if (container) {
+        if (corPintura) {
+            container.style.backgroundColor = hexToRgba(corPintura, 0.06);
+            container.style.borderColor = hexToRgba(corPintura, 0.28);
+        } else {
+            container.style.backgroundColor = '';
+            container.style.borderColor = '';
+        }
+    }
 }
 
 function createSublist(mainRow, type, existingData = null) {
@@ -1192,44 +1474,73 @@ function createSublist(mainRow, type, existingData = null) {
     }
 
     let html = `<td colspan="${colsCount}">
-        <div class="sublist-container w-full bg-slate-50 border border-slate-200 rounded-lg p-4 mt-3 mb-4 shadow-inner">
-            <div class="flex justify-between items-center border-b border-slate-200 pb-2 mb-3">
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Missa - Definição de Funções</span>
-                <button class="flex items-center gap-1 text-xs text-slate-600 hover:text-blue-600 no-print" onclick="toggleSublistFullscreen(this)">🔍 Tela Cheia</button>
+        <div class="sublist-container w-full border border-slate-200 rounded-lg p-2.5 mb-2 transition-all">
+            <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-200/80 pb-1.5 mb-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="sublist-title-text text-xs font-semibold text-slate-700 tracking-normal">Funções extras</span>
+                    <span class="sublist-event-badge-slot" style="display:none;"></span>
+                </div>
+                <button type="button" class="btn-sublist-toggle-sm flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-blue-600 bg-white hover:bg-slate-100 border border-slate-200 rounded px-2 py-0.5 transition-colors no-print cursor-pointer" onclick="toggleSublistFullscreen(this)" title="Alternar tela cheia">🔍 Tela Cheia</button>
             </div>
-            <div class="sublist-roles grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">`;
+            <div class="sublist-roles flex flex-wrap items-center gap-2">`;
 
     rolesData.forEach(r => {
         const valSafe = r.val.replace(/"/g, '&quot;');
-        html += `<div class="role-item relative flex items-center gap-2 bg-white border border-slate-200 p-2 rounded-md shadow-sm">
-                    <select class="role-select text-xs font-semibold text-slate-700 whitespace-nowrap bg-transparent border-0 p-0 focus:ring-0 cursor-pointer" onchange="saveData()">${getRoleSelectOptionsHTML(r.name)}</select> 
-                    <input type="text" class="colorable name-input role-val text-xs border border-slate-300 rounded px-2 py-1.5 w-full focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" value="${valSafe}" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)" placeholder="Nome">
-                    <button class="text-slate-400 hover:text-rose-500 font-bold px-1 cursor-pointer no-print" onclick="removeRole(this)">&times;</button>
+        html += `<div class="role-item role-pill flex items-center bg-white border border-slate-200 rounded-full px-2.5 py-1 shadow-xs hover:border-slate-300 transition-colors">
+                    <select class="role-select text-xs font-semibold text-slate-700 bg-transparent border-0 p-0 pr-1 focus:ring-0 cursor-pointer outline-none" onchange="saveData()">${getRoleSelectOptionsHTML(r.name)}</select> 
+                    <span class="text-slate-300 text-xs select-none">|</span>
+                    <input type="text" class="colorable name-input role-val text-xs text-slate-800 bg-transparent border-0 px-1.5 py-0.5 w-24 sm:w-28 focus:w-36 transition-all outline-none" value="${valSafe}" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)" placeholder="Nome">
+                    <button type="button" class="text-slate-400 hover:text-rose-500 text-sm font-bold pl-1 pr-0.5 leading-none cursor-pointer no-print" onclick="removeRole(this)" title="Remover função">&times;</button>
                  </div>`;
     });
-    html += `</div><button class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-100 px-3 py-1.5 rounded-md mt-4 transition-colors cursor-pointer no-print" onclick="addDynamicRole(this)">+ Adicionar Função</button></div></td>`;
+    html += `<button type="button" class="btn-add-role-pill inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 bg-white hover:bg-blue-50 border border-dashed border-blue-300 hover:border-blue-400 rounded-full px-3 py-1 transition-all cursor-pointer no-print" onclick="addDynamicRole(this)">
+                <span class="text-sm font-bold leading-none">+</span> Adicionar função
+             </button>
+        </div></div></td>`;
 
     subTr.innerHTML = html;
     mainRow.parentNode.insertBefore(subTr, mainRow.nextSibling);
+
+    const tbody = mainRow.closest('.bloco-missa');
+    if (tbody) tbody.classList.add('has-sublist-open');
+    atualizarTituloSublista(mainRow);
 }
 
 function toggleSublistFullscreen(btn) {
     const container = btn.closest('.sublist-container');
     if (!container) return;
     const isFullscreen = container.classList.toggle('sublist-fullscreen');
-    btn.innerHTML = isFullscreen ? '✓ Concluir Edição' : '📱 Tela Cheia';
+    btn.innerHTML = isFullscreen ? '✓ Concluir' : '🔍 Tela Cheia';
 }
 
 function addDynamicRole(btn) {
     const div = document.createElement('div');
-    div.className = 'role-item relative flex items-center gap-2 bg-white border border-slate-200 p-2 rounded-md shadow-sm';
-    div.innerHTML = `<select class="role-select text-xs font-semibold text-slate-700 whitespace-nowrap bg-transparent border-0 p-0 focus:ring-0 cursor-pointer" onchange="saveData()">${getRoleSelectOptionsHTML(sysConfig.funcoes_extras[0] || 'Função')}</select> 
-                     <input type="text" class="colorable name-input role-val text-xs border border-slate-300 rounded px-2 py-1.5 w-full focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)" placeholder="Nome">
-                     <button class="text-slate-400 hover:text-rose-500 font-bold px-1 cursor-pointer no-print" onclick="removeRole(this)">&times;</button>`;
-    btn.previousElementSibling.appendChild(div);
+    div.className = 'role-item role-pill flex items-center bg-white border border-slate-200 rounded-full px-2.5 py-1 shadow-xs hover:border-slate-300 transition-colors';
+    div.innerHTML = `<select class="role-select text-xs font-semibold text-slate-700 bg-transparent border-0 p-0 pr-1 focus:ring-0 cursor-pointer outline-none" onchange="saveData()">${getRoleSelectOptionsHTML(sysConfig.funcoes_extras[0] || 'Função')}</select> 
+                     <span class="text-slate-300 text-xs select-none">|</span>
+                     <input type="text" class="colorable name-input role-val text-xs text-slate-800 bg-transparent border-0 px-1.5 py-0.5 w-24 sm:w-28 focus:w-36 transition-all outline-none" oninput="handleNameInput(this); saveData();" onfocus="handleNameInput(this)" placeholder="Nome">
+                     <button type="button" class="text-slate-400 hover:text-rose-500 text-sm font-bold pl-1 pr-0.5 leading-none cursor-pointer no-print" onclick="removeRole(this)" title="Remover função">&times;</button>`;
+    
+    if (btn.classList.contains('btn-add-role-pill') || (btn.parentElement && btn.parentElement.classList.contains('sublist-roles'))) {
+        btn.parentElement.insertBefore(div, btn);
+    } else if (btn.previousElementSibling && btn.previousElementSibling.classList.contains('sublist-roles')) {
+        btn.previousElementSibling.appendChild(div);
+    } else {
+        const container = btn.closest('.sublist-container');
+        const rolesEl = container ? container.querySelector('.sublist-roles') : null;
+        if (rolesEl) rolesEl.appendChild(div);
+    }
+
+    const input = div.querySelector('.role-val');
+    if (input) input.focus();
+
     saveData();
 }
-function removeRole(btn) { btn.parentElement.remove(); saveData(); }
+function removeRole(btn) {
+    const item = btn.closest('.role-item');
+    if (item) item.remove();
+    saveData();
+}
 
 function addRow(tableId, data = null) {
     const table = document.getElementById(tableId);
@@ -1308,6 +1619,10 @@ function addRow(tableId, data = null) {
 
     if (data && data.coresCelulas) {
         aplicarCoresCelulas(newRow, data.coresCelulas);
+    }
+
+    if (data && data.sublist) {
+        atualizarTituloSublista(newRow);
     }
 
     if (!data) {
@@ -1551,7 +1866,8 @@ async function syncToSupabase() {
                     eventId: r.eventId,
                     rowColor: r.rowColor,
                     wasGeneral: r.wasGeneral,
-                    sublist: r.sublist,
+                    sublist_coroinhas: null,
+                    sublist_cerimoniarios: null,
                     mesAno: mesAno
                 }
             };
@@ -1560,10 +1876,21 @@ async function syncToSupabase() {
             } else {
                 mergedRows[idKey].extras.tempId = idKey; // Salva o temp id para recuperar depois
             }
+        } else {
+            if (r.dateVal && r.dateVal !== '2000-01-01') mergedRows[idKey].data = r.dateVal;
+            if (r.timeVal) mergedRows[idKey].horario = r.timeVal;
+            if (r.localVal) mergedRows[idKey].local = r.localVal;
+            if (r.obsHtml) mergedRows[idKey].observacao = r.obsHtml;
         }
 
-        if (tipo === 'coroinhas') mergedRows[idKey].coroinhas = r.names;
-        if (tipo === 'cerimoniarios') mergedRows[idKey].cerimoniarios = r.names;
+        if (tipo === 'coroinhas') {
+            mergedRows[idKey].coroinhas = r.names;
+            mergedRows[idKey].extras.sublist_coroinhas = r.sublist || null;
+        }
+        if (tipo === 'cerimoniarios') {
+            mergedRows[idKey].cerimoniarios = r.names;
+            mergedRows[idKey].extras.sublist_cerimoniarios = r.sublist || null;
+        }
     };
 
     getTableData('table-coroinhas').forEach(r => processRow(r, 'coroinhas'));
@@ -1740,7 +2067,7 @@ async function carregarEscalas() {
         if (escalas && escalas.length > 0) {
             escalas.forEach(row => {
 
-                const rowData = row.extras || {};
+                const rowData = row.extras ? { ...row.extras } : {};
                 rowData.id = row.id;
                 if (row.data) rowData.dateVal = row.data;
                 if (row.horario) rowData.timeVal = row.horario;
@@ -1749,13 +2076,16 @@ async function carregarEscalas() {
                 if (row.cores_celulas) rowData.coresCelulas = row.cores_celulas;
                 if (rowData.mesAno && !latestMesAno) latestMesAno = rowData.mesAno;
 
+                const sublistCoroinhas = (row.extras && (row.extras.sublist_coroinhas !== undefined ? row.extras.sublist_coroinhas : row.extras.sublist)) || null;
+                const sublistCerimoniarios = (row.extras && row.extras.sublist_cerimoniarios) || null;
+
                 if (row.coroinhas) {
-                    const rowDataCor = { ...rowData, names: row.coroinhas };
+                    const rowDataCor = { ...rowData, names: row.coroinhas, sublist: sublistCoroinhas };
                     addRow('table-coroinhas', rowDataCor);
                 }
 
                 if (row.cerimoniarios) {
-                    const rowDataCer = { ...rowData, names: row.cerimoniarios };
+                    const rowDataCer = { ...rowData, names: row.cerimoniarios, sublist: sublistCerimoniarios };
                     addRow('table-cerimoniarios', rowDataCer);
                 }
             });
@@ -1871,6 +2201,7 @@ function ordenarTodasTabelas() {
 
 function ordenarTabelaPorData(tableId) {
     const table = document.getElementById(tableId);
+    if (!table) return;
     const blocos = Array.from(table.querySelectorAll('tbody.bloco-missa'));
 
     blocos.sort((a, b) => {
@@ -1915,56 +2246,6 @@ document.addEventListener('paste', function (e) {
     }
 });
 
-function exportWhatsApp() {
-    const activeTabId = localStorage.getItem('activeTabV2') || 'tab-coroinhas';
-    const tableId = activeTabId === 'tab-coroinhas' ? 'table-coroinhas' : 'table-cerimoniarios';
-    const tbody = document.getElementById(tableId).querySelector('tbody');
-    const rows = tbody.querySelectorAll('.main-row');
-
-    let text = `*ESCALA DE ${activeTabId === 'tab-coroinhas' ? 'COROINHAS' : 'CERIMONIÁRIOS'}*\n`;
-    const mes = document.getElementById('select-mes').value;
-    const ano = document.getElementById('select-ano').value;
-    text += `Mês: ${mes} / ${ano}\n\n`;
-
-    rows.forEach(row => {
-        const dateInput = row.querySelector('.date-input').value;
-        if (!dateInput) return;
-
-        const parts = dateInput.split('-');
-        const formattedDate = `${parts[2]}/${parts[1]}`;
-        const dayCell = row.querySelector('.day-cell');
-        const dayText = dayCell && dayCell.innerText ? dayCell.innerText.substring(0, 3) : '';
-        const timeInput = row.querySelector('.time-input');
-        const timeText = timeInput && timeInput.value ? timeInput.value : '--:--';
-        const localSelect = row.querySelector('.local-select');
-        let localStr = '';
-        if (localSelect && localSelect.value) {
-            let val = localSelect.value.replace('📍 ', '').replace('📍', '').trim();
-            const defaultLocal = sysConfig.locais[0] || '';
-            if (val !== defaultLocal) val = '📍 ' + val;
-            localStr = ' | ' + val;
-        }
-
-        let names = [];
-        row.querySelectorAll('.main-row > .name-cell .name-input').forEach(inp => {
-            if (inp.value.trim() && inp.style.display !== 'none') names.push(inp.value.trim());
-        });
-
-        const isGeneral = row.dataset.wasGeneral === 'true';
-        if (isGeneral) names = ["TODOS CONVOCADOS"];
-
-        let namesStr = names.length > 0 ? names.join(', ') : 'A definir';
-
-        text += `🗓️ ${formattedDate} (${dayText}) - ${timeText}${localStr} | ${namesStr}\n`;
-    });
-
-    navigator.clipboard.writeText(text).then(() => {
-        alert("Escala copiada para a área de transferência!");
-    }).catch(err => {
-        alert("Erro ao copiar. Tente selecionar o texto manualmente.");
-    });
-}
-
 function highlightNextMass() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1992,34 +2273,45 @@ function highlightNextMass() {
     }
 }
 
-function exportPDF() {
-    const mes = document.getElementById('select-mes').value;
-    const ano = document.getElementById('select-ano').value;
-    const mesAno = `${mes} de ${ano}`;
+let isPrintPrepared = false;
+let printOriginalData = null;
+
+function prepareForPrint() {
+    if (isPrintPrepared) return;
+    isPrintPrepared = true;
+
     const originalTitle = document.title;
+    const mesEl = document.getElementById('select-mes');
+    const anoEl = document.getElementById('select-ano');
+    const mes = mesEl ? mesEl.value : '';
+    const ano = anoEl ? anoEl.value : '';
+    const mesAno = (mes && ano) ? `${mes} de ${ano}` : '';
+
     if (mesAno) document.title = `Escala Litúrgica - ${mesAno}`;
 
     // Atualizar o título de impressão se existir
     const printTitle = document.getElementById('print-title-text');
-    if (printTitle) printTitle.innerText = mesAno.toUpperCase();
+    let origPrintTitleText = null;
+    if (printTitle) {
+        origPrintTitleText = printTitle.innerText;
+        if (mesAno) printTitle.innerText = mesAno.toUpperCase();
+    }
 
     // Função para abreviar nomes grandes ("Carlos Eduardo da Silva Nilio" -> "Carlos Eduardo N.")
     const abbreviateName = (fullName) => {
         if (!fullName || fullName === '-') return fullName;
-        const parts = fullName.trim().split(' ').filter(p => !['de','da','do','dos','das'].includes(p.toLowerCase()));
+        const parts = fullName.trim().split(/\s+/).filter(p => !['de','da','do','dos','das'].includes(p.toLowerCase()));
         if (parts.length <= 2) return parts.join(' ');
         return `${parts[0]} ${parts[1]} ${parts[parts.length-1][0]}.`;
     };
 
-    // Preencher temporariamente inputs vazios com "-" e abreviar nomes para a impressão
-    const nameInputs = document.querySelectorAll('.name-input');
+    // 1. Processar nomes da tabela principal (não mexer em inputs de sub-listas)
+    const nameInputs = document.querySelectorAll('.main-row .name-input');
     const originalNames = new Map();
-    
     nameInputs.forEach(input => {
-        if (input.style.display !== 'none') {
+        if (input.style.display !== 'none' && !input.classList.contains('role-val')) {
             const val = input.value.trim();
-            originalNames.set(input, val); // Salva o original
-            
+            originalNames.set(input, input.value);
             if (val === '') {
                 input.value = '-';
             } else if (val !== '-') {
@@ -2028,7 +2320,7 @@ function exportPDF() {
         }
     });
 
-    // Abreviar dias da semana
+    // 2. Abreviar dias da semana
     const dayCells = document.querySelectorAll('.day-cell');
     const originalDays = new Map();
     dayCells.forEach(cell => {
@@ -2039,21 +2331,275 @@ function exportPDF() {
         cell.innerText = novoDia;
     });
 
-    window.print();
-
-    document.title = originalTitle;
-
-    // Reverter os campos para ficarem com os nomes originais de novo após imprimir
-    nameInputs.forEach(input => {
-        if (originalNames.has(input)) {
-            input.value = originalNames.get(input);
+    // 3. Abreviar locais ("Capela" -> "Cap.") e remover emojis
+    const originalLocalTexts = new Map();
+    const localSelects = document.querySelectorAll('.local-select');
+    localSelects.forEach(sel => {
+        const opt = sel.options[sel.selectedIndex];
+        if (opt) {
+            originalLocalTexts.set(opt, opt.text);
+            opt.text = opt.text.replace(/Capela\b/gi, 'Cap.').replace(/^📍\s*/, '');
         }
     });
-    dayCells.forEach(cell => {
-        if (originalDays.has(cell)) {
-            cell.innerText = originalDays.get(cell);
+
+    const localTextCells = document.querySelectorAll('.col-local, .local-cell');
+    localTextCells.forEach(cell => {
+        if (!cell.querySelector('select')) {
+            originalLocalTexts.set(cell, cell.innerText);
+            cell.innerText = cell.innerText.replace(/Capela\b/gi, 'Cap.').replace(/^📍\s*/, '');
         }
     });
+
+    // 4. Processar Sub-listas de funções para a impressão
+    const sublistsCreated = [];
+    const mainRowsModified = [];
+    const hiddenSublists = [];
+
+    const subRows = document.querySelectorAll('tr.sublist-row');
+    subRows.forEach(subTr => {
+        const mainRow = (subTr.previousElementSibling && subTr.previousElementSibling.classList.contains('main-row'))
+            ? subTr.previousElementSibling
+            : subTr.closest('tbody')?.querySelector('tr.main-row');
+        if (!mainRow) return;
+
+        // Extrair funções preenchidas
+        const roleItems = subTr.querySelectorAll('.role-item');
+        const activeRoles = [];
+
+        roleItems.forEach(item => {
+            let funcName = '';
+            let personName = '';
+
+            const sel = item.querySelector('.role-select');
+            const inp = item.querySelector('.role-val');
+            if (sel && inp) {
+                funcName = sel.value || (sel.options[sel.selectedIndex]?.text) || '';
+                personName = inp.value ? inp.value.trim() : '';
+            } else {
+                const spans = item.querySelectorAll('span');
+                if (spans.length >= 2) {
+                    funcName = spans[0].innerText.trim();
+                    personName = spans[1].innerText.trim();
+                }
+            }
+
+            if (personName && personName !== '-' && personName !== '') {
+                activeRoles.push({
+                    name: funcName.trim(),
+                    val: abbreviateName(personName)
+                });
+            }
+        });
+
+        // Se nenhuma função tiver nome preenchido, a linha inteira some no PDF
+        if (activeRoles.length === 0) {
+            subTr.classList.add('no-print');
+            hiddenSublists.push(subTr);
+            return;
+        }
+
+        // a) Ligação visual com a missa: sem borda inferior na linha da missa
+        mainRow.classList.add('has-sublist-print');
+        mainRowsModified.push(mainRow);
+
+        // b) Configurar a linha da sub-lista
+        subTr.classList.add('sublist-row-print');
+
+        // c) Mesma cor de fundo e borda lateral da missa (evento ou pintura)
+        let mainBg = mainRow.style.backgroundColor || mainRow.dataset.rowColor || '';
+        if (!mainBg && mainRow.dataset.coresCelulas) {
+            try {
+                const cores = JSON.parse(mainRow.dataset.coresCelulas);
+                if (cores.local && cores.local !== 'transparent') mainBg = cores.local;
+                else if (cores.nome1 && cores.nome1 !== 'transparent') mainBg = cores.nome1;
+            } catch (e) {}
+        }
+        if (!mainBg && mainRow.dataset.eventId && sysConfig && Array.isArray(sysConfig.eventos)) {
+            const ev = sysConfig.eventos.find(e => e.nome === mainRow.dataset.eventId);
+            if (ev && ev.pintar_linha !== false) {
+                mainBg = hexToRgba(ev.cor || '#3b82f6', 0.12);
+            }
+        }
+
+        const mainBorderLeft = mainRow.style.borderLeft || '';
+        subTr.dataset.origBg = subTr.style.backgroundColor || '';
+        subTr.dataset.origBorderLeft = subTr.style.borderLeft || '';
+
+        if (mainBg) {
+            subTr.style.backgroundColor = mainBg;
+            subTr.dataset.printBgApplied = 'true';
+        }
+        if (mainBorderLeft) {
+            subTr.style.borderLeft = mainBorderLeft;
+            subTr.dataset.printBorderApplied = 'true';
+        }
+
+        // d) Ocultar td original que contém o .sublist-container
+        const origTds = subTr.querySelectorAll(':scope > td');
+        origTds.forEach(td => td.classList.add('no-print'));
+
+        // e) Calcular colunas da missa para alinhamento com a coluna "Local"
+        const visibleCells = Array.from(mainRow.children).filter(c => !c.classList.contains('no-print'));
+        // 3 primeiras colunas (Data, Dia, Horário) ficam vazias
+        const remainingCols = Math.max(1, visibleCells.length - 3);
+
+        const tdData = document.createElement('td');
+        tdData.className = 'sublist-print-cell sublist-print-empty';
+
+        const tdDia = document.createElement('td');
+        tdDia.className = 'sublist-print-cell sublist-print-empty';
+
+        const tdHora = document.createElement('td');
+        tdHora.className = 'sublist-print-cell sublist-print-empty';
+
+        // Determinar cor da faixa da sub-lista: #e2e8f0 padrão, ou tom mais escuro da cor da missa se houver evento/pintura
+        let badgeBg = '#e2e8f0';
+        let ev = null;
+        if (mainRow.dataset.eventId && sysConfig && Array.isArray(sysConfig.eventos)) {
+            ev = sysConfig.eventos.find(e => e.nome === mainRow.dataset.eventId);
+        }
+
+        if (ev && ev.cor && ev.pintar_linha !== false) {
+            badgeBg = hexToRgba(ev.cor, 0.28);
+        } else if (mainBg) {
+            if (mainBg.startsWith('rgba')) {
+                badgeBg = mainBg.replace(/,\s*[\d\.]+\)$/, ', 0.28)');
+            } else if (mainBg.startsWith('#')) {
+                badgeBg = hexToRgba(mainBg, 0.28);
+            } else {
+                badgeBg = '#cbd5e1';
+            }
+        }
+
+        const tdContent = document.createElement('td');
+        tdContent.className = 'sublist-print-cell sublist-print-content';
+        tdContent.colSpan = remainingCols;
+
+        const rolesHtml = activeRoles.map(r => 
+            `<span class="sublist-print-func">${r.name}:</span> <span class="sublist-print-name">${r.val}</span>`
+        ).join('<span class="sublist-print-sep">  ·  </span>');
+
+        tdContent.innerHTML = `<div class="sublist-print sublist-print-badge" style="background-color: ${badgeBg} !important;"><span class="sublist-print-arrow">↳ </span>${rolesHtml}</div>`;
+
+        // Garantir display: table-cell inline para não ser ocultado por nenhuma regra externa
+        tdData.style.display = 'table-cell';
+        tdDia.style.display = 'table-cell';
+        tdHora.style.display = 'table-cell';
+        tdContent.style.display = 'table-cell';
+
+        subTr.appendChild(tdData);
+        subTr.appendChild(tdDia);
+        subTr.appendChild(tdHora);
+        subTr.appendChild(tdContent);
+
+        sublistsCreated.push({
+            subTr,
+            origTds,
+            printTds: [tdData, tdDia, tdHora, tdContent]
+        });
+    });
+
+    printOriginalData = {
+        originalTitle,
+        printTitle,
+        origPrintTitleText,
+        originalNames,
+        originalDays,
+        originalLocalTexts,
+        sublistsCreated,
+        mainRowsModified,
+        hiddenSublists
+    };
+}
+
+function cleanupAfterPrint() {
+    if (!isPrintPrepared || !printOriginalData) return;
+
+    const data = printOriginalData;
+
+    // Restaurar título da página
+    if (data.originalTitle !== undefined) {
+        document.title = data.originalTitle;
+    }
+
+    // Restaurar título do cabeçalho de impressão
+    if (data.printTitle && data.origPrintTitleText !== null) {
+        data.printTitle.innerText = data.origPrintTitleText;
+    }
+
+    // Restaurar nomes
+    if (data.originalNames) {
+        data.originalNames.forEach((origVal, input) => {
+            input.value = origVal;
+        });
+    }
+
+    // Restaurar dias da semana
+    if (data.originalDays) {
+        data.originalDays.forEach((origText, cell) => {
+            cell.innerText = origText;
+        });
+    }
+
+    // Restaurar locais
+    if (data.originalLocalTexts) {
+        data.originalLocalTexts.forEach((origText, el) => {
+            if (el.tagName === 'OPTION') {
+                el.text = origText;
+            } else {
+                el.innerText = origText;
+            }
+        });
+    }
+
+    // Restaurar sub-listas impressas
+    if (data.sublistsCreated) {
+        data.sublistsCreated.forEach(item => {
+            item.printTds.forEach(td => td.remove());
+            item.origTds.forEach(td => td.classList.remove('no-print'));
+            item.subTr.classList.remove('sublist-row-print');
+
+            if (item.subTr.dataset.printBgApplied) {
+                item.subTr.style.backgroundColor = item.subTr.dataset.origBg || '';
+                delete item.subTr.dataset.printBgApplied;
+            }
+            if (item.subTr.dataset.printBorderApplied) {
+                item.subTr.style.borderLeft = item.subTr.dataset.origBorderLeft || '';
+                delete item.subTr.dataset.printBorderApplied;
+            }
+            delete item.subTr.dataset.origBg;
+            delete item.subTr.dataset.origBorderLeft;
+        });
+    }
+
+    // Restaurar classes nas linhas principais de missa
+    if (data.mainRowsModified) {
+        data.mainRowsModified.forEach(row => {
+            row.classList.remove('has-sublist-print');
+        });
+    }
+
+    // Restaurar sub-listas que foram ocultadas por falta de nomes
+    if (data.hiddenSublists) {
+        data.hiddenSublists.forEach(subTr => {
+            subTr.classList.remove('no-print');
+        });
+    }
+
+    printOriginalData = null;
+    isPrintPrepared = false;
+}
+
+window.addEventListener('beforeprint', prepareForPrint);
+window.addEventListener('afterprint', cleanupAfterPrint);
+
+function exportPDF() {
+    prepareForPrint();
+    try {
+        window.print();
+    } finally {
+        cleanupAfterPrint();
+    }
 }
 
 // --- ZONA DE CONFIGURAÇÕES (GRID) ---
@@ -2603,6 +3149,7 @@ async function salvarPintura() {
     if (tr) {
         tr.dataset.coresCelulas = JSON.stringify(currentCoresCelulas);
         aplicarCoresCelulas(tr, currentCoresCelulas);
+        if (typeof atualizarTituloSublista === 'function') atualizarTituloSublista(tr);
         saveData();
     }
 
@@ -2746,7 +3293,8 @@ async function confirmarGeracaoMes() {
                     extras: {
                         mesAno: mesAnoStr,
                         dayHtml: diaSemanaStr,
-                        sublist: null
+                        sublist_coroinhas: null,
+                        sublist_cerimoniarios: null
                     }
                 };
                 novasEscalas.push(row);
@@ -2808,7 +3356,8 @@ async function inserirMissaApos(btn) {
         extras: {
             mesAno: mesAnoStr,
             dayHtml: diaSemanaStr,
-            sublist: null
+            sublist_coroinhas: null,
+            sublist_cerimoniarios: null
         }
     };
 
@@ -3150,9 +3699,13 @@ function renderMobileCards(escalasArray) {
             });
 
             // Renderiza funções adicionais (Sublistas)
-            if (row.extras && row.extras.sublist) {
-                row.extras.sublist.forEach(r => {
-                    const nomeStr = r.val.trim();
+            const sublistData = isCerimoniarios
+                ? (row.extras && row.extras.sublist_cerimoniarios)
+                : (row.extras && (row.extras.sublist_coroinhas !== undefined ? row.extras.sublist_coroinhas : row.extras.sublist));
+
+            if (sublistData && Array.isArray(sublistData)) {
+                sublistData.forEach(r => {
+                    const nomeStr = (r.val || '').trim();
                     if (nomeStr !== '') {
                         const nomesArray = nomeStr.split(',').map(n => n.trim()).filter(n => n);
                         const label = r.name || 'Função Adicional';
@@ -3306,9 +3859,10 @@ function fecharModalExportacao() {
 }
 
 function exportWhatsApp() {
-    const mes = document.getElementById('select-mes').value;
-    const ano = document.getElementById('select-ano').value;
-    const isCoroinhas = document.getElementById('tab-coroinhas').classList.contains('active');
+    const mes = document.getElementById('select-mes') ? document.getElementById('select-mes').value : '';
+    const ano = document.getElementById('select-ano') ? document.getElementById('select-ano').value : '';
+    const tabCor = document.getElementById('tab-coroinhas');
+    const isCoroinhas = tabCor ? tabCor.classList.contains('active') : true;
     const tableId = isCoroinhas ? 'table-coroinhas' : 'table-cerimoniarios';
     const titulo = isCoroinhas ? 'Coroinhas' : 'Cerimoniários';
     
@@ -3319,12 +3873,23 @@ function exportWhatsApp() {
     const rows = tbody.querySelectorAll('tr.main-row');
     
     rows.forEach(tr => {
-        const dateCell = tr.querySelector('.date-cell div');
-        if (!dateCell) return;
-        const dataStr = dateCell.innerText.trim();
-        const diaSemana = tr.querySelector('.day-cell').innerText.trim();
-        const local = tr.querySelector('.col-local select') ? tr.querySelector('.col-local select').value : '';
-        const hora = tr.querySelector('.time-input') ? tr.querySelector('.time-input').value : '';
+        const dateInput = tr.querySelector('.date-input');
+        let dataStr = '';
+        if (dateInput && dateInput.value) {
+            const parts = dateInput.value.split('-');
+            dataStr = parts.length === 3 ? `${parts[2]}/${parts[1]}` : dateInput.value;
+        } else {
+            const dc = tr.querySelector('.data-cell div, .date-cell div, .data-cell, .date-cell');
+            dataStr = dc ? dc.innerText.trim() : '';
+        }
+        if (!dataStr) return;
+
+        const diaCell = tr.querySelector('.day-cell');
+        const diaSemana = diaCell ? diaCell.innerText.trim() : '';
+        const localSelect = tr.querySelector('.local-select, .col-local select');
+        const local = localSelect ? localSelect.value.replace('📍 ', '').replace('📍', '').trim() : '';
+        const timeInput = tr.querySelector('.time-input');
+        const hora = timeInput ? timeInput.value : '';
         
         text += `📅 *${dataStr} - ${diaSemana}*\n`;
         text += `⛪ ${local} - ${hora}\n`;
@@ -3350,8 +3915,12 @@ function exportWhatsApp() {
         if (sublist && sublist.classList.contains('sublist-row')) {
             const subs = sublist.querySelectorAll('.role-item');
             subs.forEach(s => {
-                const funcName = s.querySelector('input[type="text"]').value || 'Extra';
-                const sVal = s.querySelector('.name-input').value;
+                const select = s.querySelector('.role-select');
+                const roleSpan = s.querySelector('span.uppercase, span.text-xs, span');
+                const funcName = select ? select.value : (roleSpan ? roleSpan.innerText.trim() : 'Extra');
+                const valInput = s.querySelector('.name-input, .role-val, input[type="text"]');
+                const valSpan = s.querySelector('.text-sm, span:last-child');
+                const sVal = valInput ? valInput.value : (valSpan ? valSpan.innerText.trim() : '');
                 if (sVal && sVal.trim() !== '' && sVal.trim() !== '-') {
                     text += `• ${funcName}: ${sVal}\n`;
                 }
